@@ -1,8 +1,10 @@
 "use client";
 
+import { login } from "@/backend/actions/auth.action";
 import { Manrope } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
 import { FiArrowLeft, FiEye, FiEyeOff } from "react-icons/fi";
@@ -17,6 +19,8 @@ const LOGO_URL =
   "https://lh3.googleusercontent.com/aida/AEtjO1WTPMYGKYPZn_MUhMD7A6QY-ZefsGDQtMjjpBN5S3Za4z4G7b0u2kO0QKbOQU-1w7kqdizZmc7LZY69qausXwB7jJ_S4ehk4YCyVCGiJ3NgzmNL4O0AWJHFnCKo7zPMywEC4-49S-C4RH2hK7hOvxieBiEVv_LLGqsENzBVk8yaWc1E_q-TkkkDkgGNX5qSgtuU9m5vUZJ-UNl6NZjq1HLG3h9i5JJEBEEUD9HpDB1tanA7HKz3T96icNI1";
 
 export default function LoginPage() {
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -32,20 +36,17 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // Simulate authentication / placeholder for auth API
-      await new Promise((resolve) => setTimeout(resolve, 800));
 
       if (!email || !password) {
         setErrorMessage("Please enter both email and password.");
         setIsLoading(false);
         return;
       }
-
+      const res = await login({ email, password })
       // Placeholder feedback
-      setSuccessMessage("Authentication successful. Redirecting...");
-      setTimeout(() => {
-        window.location.href = "/admin";
-      }, 1000);
+      setSuccessMessage(res.message ?? "");
+      res?.success && router.push("/admin")
+
     } catch (err: unknown) {
       const message =
         err instanceof Error
