@@ -1,21 +1,21 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface Images extends Document {
-    title: string;
-    url: string;
-    categoryId: mongoose.Types.ObjectId;
-    position: number;
+  title: string;
+  url: string;
+  categoryId: mongoose.Types.ObjectId;
+  position: number;
+  description: string;
 
-    createdAt: Date;
-    updatedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
-
 
 const ImageSchema = new Schema<Images>(
   {
     title: {
       type: String,
-      trim:true
+      trim: true,
     },
     url: {
       type: String,
@@ -29,8 +29,12 @@ const ImageSchema = new Schema<Images>(
     position: {
       type: Number,
       required: true,
-      min:0,
-    },  
+      min: 0,
+    },
+    description: {
+      type:String,
+      trim: true
+    }
   },
   { timestamps: true }
 );

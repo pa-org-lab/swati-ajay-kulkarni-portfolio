@@ -18,7 +18,7 @@ export async function signup(data: unknown) {
 
     try {
         const { name, email, password } = validData.data;
-        dbConnect();
+        await dbConnect();
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = new User({
@@ -53,7 +53,7 @@ export async function login(data: unknown) {
 
     try {
         const { email, password } = validData.data;
-        dbConnect();
+       await dbConnect();
 
         const user = await User.findOne({ email }).select("+password");
         if (!user) {
