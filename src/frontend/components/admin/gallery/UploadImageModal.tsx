@@ -11,7 +11,7 @@ import {
   FiX,
 } from "react-icons/fi";
 import type { CategoryData } from "@/backend/actions/category.action";
-import { saveUploadedImagesAction } from "@/backend/actions/image.action";
+import { type ImageData, saveUploadedImagesAction } from "@/backend/actions/image.action";
 import { uploadSingleImage } from "@/frontend/utils/lib/uploadSingleImage";
 
 interface SelectedImageItem {
@@ -27,7 +27,7 @@ interface UploadImageModalProps {
   categories: CategoryData[];
   defaultCategoryId?: string;
   onClose: () => void;
-  onSuccess: (targetCategoryId: string) => void;
+  onSuccess: (targetCategoryId: string, newImages?: ImageData[]) => void;
 }
 
 export default function UploadImageModal({
@@ -48,12 +48,14 @@ export default function UploadImageModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (defaultCategoryId) {
-      setSelectedCategoryId(defaultCategoryId);
-    } else if (categories.length > 0 && !selectedCategoryId) {
-      setSelectedCategoryId(categories[0]._id);
+    if (isOpen) {
+      if (defaultCategoryId) {
+        setSelectedCategoryId(defaultCategoryId);
+      } else if (categories.length > 0) {
+        setSelectedCategoryId(categories[0]._id);
+      }
     }
-  }, [defaultCategoryId, categories, selectedCategoryId]);
+  }, [isOpen, defaultCategoryId, categories]);
 
   // Clean up object URLs when modal unmounts or closes
   useEffect(() => {
@@ -182,7 +184,7 @@ export default function UploadImageModal({
         );
         images.forEach((img) => URL.revokeObjectURL(img.previewUrl));
         setImages([]);
-        onSuccess(selectedCategoryId);
+        onSuccess(selectedCategoryId, saveRes.images);
         onClose();
       } else {
         toast.error(saveRes.error || "Failed to save image records in database", {

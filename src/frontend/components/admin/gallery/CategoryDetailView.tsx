@@ -28,6 +28,8 @@ interface CategoryDetailViewProps {
   onUploadClick: (categoryId: string) => void;
   onEditCategory: (category: CategoryData) => void;
   onDeleteCategory: (categoryId: string) => void;
+  refreshTrigger?: number;
+  onImagesChange?: () => void;
 }
 
 export default function CategoryDetailView({
@@ -36,6 +38,8 @@ export default function CategoryDetailView({
   onUploadClick,
   onEditCategory,
   onDeleteCategory,
+  refreshTrigger,
+  onImagesChange,
 }: CategoryDetailViewProps) {
   const [images, setImages] = useState<ImageData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -64,7 +68,7 @@ export default function CategoryDetailView({
 
   useEffect(() => {
     fetchCategoryImages();
-  }, [fetchCategoryImages]);
+  }, [fetchCategoryImages, refreshTrigger]);
 
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, index: number) => {
@@ -115,6 +119,7 @@ export default function CategoryDetailView({
       const res = await reorderImagesAction(category._id, orderedIds);
       if (res.success) {
         toast.success("Image order updated!", { id: toastId });
+        onImagesChange?.();
       } else {
         toast.error(res.error || "Failed to save reordering", { id: toastId });
         fetchCategoryImages();
@@ -130,7 +135,6 @@ export default function CategoryDetailView({
     if (!imageToDelete) return;
 
     const imgId = imageToDelete._id;
-    const imgTitle = imageToDelete.title;
     const toastId = toast.loading("Deleting image...");
     setIsDeletingImage(true);
 
@@ -140,6 +144,7 @@ export default function CategoryDetailView({
         toast.success("Image deleted successfully", { id: toastId });
         setImages((prev) => prev.filter((img) => img._id !== imgId));
         setImageToDelete(null);
+        onImagesChange?.();
       } else {
         toast.error(res.error || "Failed to delete image", { id: toastId });
       }
@@ -151,11 +156,11 @@ export default function CategoryDetailView({
     }
   };
 
-
   const handleImageUpdateSuccess = (updatedImage: ImageData) => {
     setImages((prev) =>
       prev.map((img) => (img._id === updatedImage._id ? updatedImage : img))
     );
+    onImagesChange?.();
   };
 
   return (

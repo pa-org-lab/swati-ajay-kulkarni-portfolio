@@ -39,6 +39,7 @@ export default function AdminGallerySection() {
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploadTargetCategoryId, setUploadTargetCategoryId] = useState<string | undefined>(undefined);
+  const [imagesRefreshKey, setImagesRefreshKey] = useState(0);
 
   // Fetch categories from DB
   const loadCategories = useCallback(async () => {
@@ -174,16 +175,21 @@ export default function AdminGallerySection() {
   };
 
   // Handle Upload Success
-  const handleUploadSuccess = async () => {
+  const handleUploadSuccess = async (targetCategoryId?: string) => {
     try {
       const res = await getCategoriesAction();
       if (res.success && res.categories) {
         setCategories(res.categories);
-        setSelectedCategory((prev) => {
-          if (!prev) return null;
-          return res.categories?.find((c) => c._id === prev._id) || prev;
-        });
+        const activeCatId = targetCategoryId || selectedCategory?._id;
+        if (activeCatId) {
+          const matchedCategory = res.categories.find((c) => c._id === activeCatId);
+          if (matchedCategory) {
+            setSelectedCategory(matchedCategory);
+          }
+        }
       }
+      // Increment imagesRefreshKey to trigger immediate image refetch in CategoryDetailView
+      setImagesRefreshKey((prev) => prev + 1);
     } catch (e) {
       console.error("Error refreshing categories after upload:", e);
     }
@@ -196,10 +202,12 @@ export default function AdminGallerySection() {
         <CategoryDetailView
           key={selectedCategory._id}
           category={selectedCategory}
+          refreshTrigger={imagesRefreshKey}
           onBack={() => setSelectedCategory(null)}
           onUploadClick={(catId) => handleOpenUpload(catId)}
           onEditCategory={(cat) => setEditingCategory(cat)}
           onDeleteCategory={(catId) => handleDeleteCategory(catId)}
+          onImagesChange={loadCategories}
         />
       ) : (
         /* Main Category Grid View */
