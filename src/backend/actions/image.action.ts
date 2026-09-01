@@ -1,9 +1,8 @@
 "use server";
 
 import dbConnect from "@/backend/config/dbConnect";
-import { ImageCategory } from "@/backend/models/imageCategory.model";
-import { Image } from "@/backend/models/images.model";
 import { getPublicImageUrl } from "@/backend/lib/publicImageUrl";
+import { Image, type Images } from "@/backend/models/images.model";
 
 export interface ImageData {
   _id: string;
@@ -16,29 +15,73 @@ export interface ImageData {
 }
 
 // Helper to format MongoDB document into ImageData
-function formatImage(img: any): ImageData {
+function formatImage(img: Images | Record<string, unknown>): ImageData {
+  const record = img as Record<string, unknown>;
+  const rawCreatedAt = record.createdAt;
+  const createdAtStr =
+    rawCreatedAt instanceof Date
+      ? rawCreatedAt.toISOString()
+      : typeof rawCreatedAt === "string"
+        ? rawCreatedAt
+        : undefined;
+
   return {
-    _id: img._id.toString(),
-    title: img.title || "",
-    url: getPublicImageUrl(img.url),
-    categoryId: img.categoryId.toString(),
-    position: img.position,
-    description: img.description || "",
-    createdAt: img.createdAt?.toISOString?.() || img.createdAt,
+    _id: String(record._id),
+    title: typeof record.title === "string" ? record.title : "",
+    url: getPublicImageUrl(typeof record.url === "string" ? record.url : ""),
+    categoryId: String(record.categoryId),
+    position: typeof record.position === "number" ? record.position : 0,
+    description:
+      typeof record.description === "string" ? record.description : "",
+    createdAt: createdAtStr,
   };
 }
 
-// Fetch all images for a category
-export async function getImagesByCategoryAction(categoryId: string) {
+export interface PaginationData {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasMore: boolean;
+}
+
+// Fetch images for a category with pagination
+export async function getImagesByCategoryAction(
+  categoryId: string,
+  page: number = 1,
+  limit: number = 12,
+) {
   try {
-    if (!categoryId) return { success: false, error: "Category ID is required" };
+    if (!categoryId)
+      return { success: false, error: "Category ID is required" };
+
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.max(1, Number(limit) || 12);
+    const skip = (pageNum - 1) * limitNum;
 
     await dbConnect();
-    const images = await Image.find({ categoryId }).sort({ position: 1 }).lean();
+    const [images, total] = await Promise.all([
+      Image.find({ categoryId })
+        .sort({ position: 1, _id: 1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      Image.countDocuments({ categoryId }),
+    ]);
+
+    const totalPages = Math.ceil(total / limitNum);
+    const hasMore = pageNum < totalPages;
 
     return {
       success: true,
       images: images.map(formatImage),
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages,
+        hasMore,
+      },
     };
   } catch (error) {
     console.error("Error fetching images:", error);
@@ -52,7 +95,7 @@ export async function getImagesByCategoryAction(categoryId: string) {
 // Save newly uploaded images
 export async function saveUploadedImagesAction(
   categoryId: string,
-  imagesToSave: { url: string; title?: string; description?: string }[]
+  imagesToSave: { url: string; title?: string; description?: string }[],
 ) {
   try {
     if (!categoryId || !imagesToSave?.length) {
@@ -96,7 +139,7 @@ export async function saveUploadedImagesAction(
 // Update image details (title/description)
 export async function updateImageAction(
   imageId: string,
-  data: { title?: string; description?: string }
+  data: { title?: string; description?: string },
 ) {
   try {
     if (!imageId) return { success: false, error: "Image ID is required" };
@@ -109,7 +152,7 @@ export async function updateImageAction(
         title: data.title?.trim() || "",
         description: data.description?.trim() || "",
       },
-      { new: true }
+      { new: true },
     ).lean();
 
     if (!updated) return { success: false, error: "Image not found" };

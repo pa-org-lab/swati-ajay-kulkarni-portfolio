@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { FiLoader } from "react-icons/fi";
 import {
   type CategoryData,
   deleteCategoryAction,
   getCategoriesAction,
   reorderCategoriesAction,
 } from "@/backend/actions/category.action";
+import ImageGridSkeleton from "@/frontend/components/common/ImageCardSkeleton";
 import ConfirmationModal from "@/frontend/components/common/ConfirmationModal";
 import CategoryDetailView from "./CategoryDetailView";
 import CreateCategoryModal from "./CreateCategoryModal";
@@ -25,20 +25,22 @@ export default function AdminGallerySection() {
 
   // Selected category for detail view
   const [selectedCategory, setSelectedCategory] = useState<CategoryData | null>(
-    null
+    null,
   );
 
   // Modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<CategoryData | null>(
-    null
+    null,
   );
   const [categoryToDelete, setCategoryToDelete] = useState<CategoryData | null>(
-    null
+    null,
   );
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [uploadTargetCategoryId, setUploadTargetCategoryId] = useState<string | undefined>(undefined);
+  const [uploadTargetCategoryId, setUploadTargetCategoryId] = useState<
+    string | undefined
+  >(undefined);
   const [imagesRefreshKey, setImagesRefreshKey] = useState(0);
 
   // Fetch categories from DB
@@ -107,7 +109,7 @@ export default function AdminGallerySection() {
   // Edit Category Success
   const handleEditSuccess = (updatedCat: CategoryData) => {
     setCategories((prev) =>
-      prev.map((c) => (c._id === updatedCat._id ? updatedCat : c))
+      prev.map((c) => (c._id === updatedCat._id ? updatedCat : c)),
     );
     if (selectedCategory && selectedCategory._id === updatedCat._id) {
       setSelectedCategory(updatedCat);
@@ -151,7 +153,6 @@ export default function AdminGallerySection() {
     }
   };
 
-
   // Context Menu Actions
   const handleMenuAction = (action: string, category: CategoryData) => {
     switch (action) {
@@ -182,7 +183,9 @@ export default function AdminGallerySection() {
         setCategories(res.categories);
         const activeCatId = targetCategoryId || selectedCategory?._id;
         if (activeCatId) {
-          const matchedCategory = res.categories.find((c) => c._id === activeCatId);
+          const matchedCategory = res.categories.find(
+            (c) => c._id === activeCatId,
+          );
           if (matchedCategory) {
             setSelectedCategory(matchedCategory);
           }
@@ -219,19 +222,11 @@ export default function AdminGallerySection() {
           />
 
           {/* Toolbar */}
-          <GalleryToolbar
-            totalCount={categories.length}
-            onSort={handleSort}
-          />
+          <GalleryToolbar totalCount={categories.length} onSort={handleSort} />
 
           {/* Loading or Grid */}
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-20 text-[#a8522e]">
-              <FiLoader className="animate-spin text-3xl mb-3" />
-              <p className="text-[14px] text-[#6b5a50]">
-                Loading gallery categories...
-              </p>
-            </div>
+            <ImageGridSkeleton count={8} />
           ) : (
             <GalleryGrid
               categories={categories}
@@ -291,4 +286,3 @@ export default function AdminGallerySection() {
     </>
   );
 }
-
