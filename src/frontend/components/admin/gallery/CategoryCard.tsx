@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { FiMove } from "react-icons/fi";
+import { FiImage, FiMove } from "react-icons/fi";
 import type { CategoryData } from "@/backend/actions/category.action";
 import CategoryContextMenu from "./CategoryContextMenu";
 
@@ -58,17 +58,26 @@ export default function CategoryCard({
     >
       {/* Thumbnail with 4:3 aspect ratio */}
       <div
-        className="relative overflow-hidden rounded-t-2xl bg-[#ede8e5] w-full"
+        className="relative overflow-hidden rounded-t-2xl bg-[#ede8e5] w-full flex items-center justify-center"
         style={{ aspectRatio: "4/3" }}
       >
-        <Image
-          src={category.img}
-          alt={category.alt || `${category.name} collection`}
-          fill
-          unoptimized
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-        />
+        {category.img ? (
+          <Image
+            src={category.img}
+            alt={category.alt || `${category.name} collection`}
+            fill
+            unoptimized
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center text-[#8c786a] gap-1.5 p-4 select-none">
+            <FiImage className="text-3xl opacity-40 text-[#a8522e]" />
+            <span className="text-[11px] font-semibold tracking-wider uppercase text-[#8c786a]/70">
+              No images
+            </span>
+          </div>
+        )}
 
         {/* Hover Scrim */}
         <div

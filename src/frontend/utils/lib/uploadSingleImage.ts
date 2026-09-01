@@ -25,5 +25,5 @@ export async function uploadSingleImage(file: File) {
         throw new Error("Failed to upload image");
     }
 
-    return result.publicUrl;
+    return result.key;
 }

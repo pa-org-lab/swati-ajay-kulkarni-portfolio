@@ -3,6 +3,7 @@
 import dbConnect from "@/backend/config/dbConnect";
 import { ImageCategory } from "@/backend/models/imageCategory.model";
 import { Image } from "@/backend/models/images.model";
+import { getPublicImageUrl } from "@/backend/lib/publicImageUrl";
 import slugify from "slugify";
 
 export interface CategoryData {
@@ -16,28 +17,28 @@ export interface CategoryData {
   createdAt?: string;
 }
 
-export async function getCategoriesAction(): Promise<{
-  success: boolean;
-  categories?: CategoryData[];
-  error?: string;
-}> {
+// Helper to generate a unique slug
+async function generateUniqueSlug(name: string, excludeId?: string) {
+  let slug = slugify(name, { lower: true, strict: true }) || `category-${Date.now().toString().slice(-6)}`;
+  const existing = await ImageCategory.findOne({ slug, ...(excludeId ? { _id: { $ne: excludeId } } : {}) })
+    .select("_id")
+    .lean();
+  return existing ? `${slug}-${Date.now().toString().slice(-4)}` : slug;
+}
+
+// Get all categories with image count and first image
+export async function getCategoriesAction() {
   try {
     await dbConnect();
 
-    const categoriesWithStats: CategoryData[] = await ImageCategory.aggregate([
-      // Uses { position: 1 } index
+    const categories: CategoryData[] = await ImageCategory.aggregate([
       { $sort: { position: 1 } },
       {
         $lookup: {
-          from: Image.collection.name,
-          let: { catId: "$_id" },
-          pipeline: [
-            // Uses compound index { categoryId: 1, position: 1 }
-            { $match: { $expr: { $eq: ["$categoryId", "$$catId"] } } },
-            { $sort: { position: 1 } },
-            { $project: { url: 1, title: 1 } },
-          ],
-          as: "categoryImages",
+          from: "images",
+          localField: "_id",
+          foreignField: "categoryId",
+          as: "images",
         },
       },
       {
@@ -46,19 +47,9 @@ export async function getCategoriesAction(): Promise<{
           name: 1,
           slug: 1,
           position: 1,
-          count: { $size: "$categoryImages" },
-          img: {
-            $ifNull: [
-              { $arrayElemAt: ["$categoryImages.url", 0] },
-              "https://images.unsplash.com/photo-1506863530036-1efeddceb993?w=600&h=440&fit=crop&auto=format",
-            ],
-          },
-          alt: {
-            $ifNull: [
-              { $arrayElemAt: ["$categoryImages.title", 0] },
-              { $concat: ["$name", " photo collection"] },
-            ],
-          },
+          count: { $size: "$images" },
+          img: { $ifNull: [{ $arrayElemAt: ["$images.url", 0] }, ""] },
+          alt: { $concat: ["$name", " photo collection"] },
           createdAt: {
             $dateToString: {
               date: "$createdAt",
@@ -72,7 +63,10 @@ export async function getCategoriesAction(): Promise<{
 
     return {
       success: true,
-      categories: categoriesWithStats,
+      categories: categories.map((cat) => ({
+        ...cat,
+        img: getPublicImageUrl(cat.img),
+      })),
     };
   } catch (error) {
     console.error("Error fetching categories:", error);
@@ -83,60 +77,25 @@ export async function getCategoriesAction(): Promise<{
   }
 }
 
-export async function createCategoryAction(name: string): Promise<{
-  success: boolean;
-  category?: CategoryData;
-  error?: string;
-}> {
+// Create new category
+export async function createCategoryAction(name: string){
   try {
-    if (!name || !name.trim()) {
-      return { success: false, error: "Category name is required" };
-    }
+    const trimmed = name?.trim();
+    if (!trimmed) return { success: false, error: "Category name is required" };
 
     await dbConnect();
 
-    const trimmedName = name.trim();
-
-    // Uses collation index { name: 1 } for fast case-insensitive uniqueness check
-    const existingName = await ImageCategory.findOne({ name: trimmedName })
+    const duplicate = await ImageCategory.findOne({ name: trimmed })
       .collation({ locale: "en", strength: 2 })
       .select("_id")
       .lean();
+    if (duplicate) return { success: false, error: "A category with this name already exists" };
 
-    if (existingName) {
-      return {
-        success: false,
-        error: "A category with this name already exists",
-      };
-    }
+    const slug = await generateUniqueSlug(trimmed);
+    const last = await ImageCategory.findOne().sort({ position: -1 }).select("position").lean();
+    const position = last ? last.position + 1 : 0;
 
-    let baseSlug = slugify(trimmedName, { lower: true, strict: true });
-    if (!baseSlug) {
-      baseSlug = `category-${Date.now().toString().slice(-6)}`;
-    }
-
-    let finalSlug = baseSlug;
-    // Uses unique index on slug
-    const existingSlug = await ImageCategory.findOne({ slug: finalSlug })
-      .select("_id")
-      .lean();
-
-    if (existingSlug) {
-      finalSlug = `${baseSlug}-${Date.now().toString().slice(-4)}`;
-    }
-
-    // Uses { position: 1 } index in reverse
-    const lastCategory = await ImageCategory.findOne()
-      .sort({ position: -1 })
-      .select("position")
-      .lean();
-    const position = lastCategory ? lastCategory.position + 1 : 0;
-
-    const newCategory = await ImageCategory.create({
-      name: trimmedName,
-      slug: finalSlug,
-      position,
-    });
+    const newCategory = await ImageCategory.create({ name: trimmed, slug, position });
 
     return {
       success: true,
@@ -146,7 +105,7 @@ export async function createCategoryAction(name: string): Promise<{
         slug: newCategory.slug,
         position: newCategory.position,
         count: 0,
-        img: "https://images.unsplash.com/photo-1506863530036-1efeddceb993?w=600&h=440&fit=crop&auto=format",
+        img: "",
         alt: `${newCategory.name} photo collection`,
         createdAt: newCategory.createdAt?.toISOString(),
       },
@@ -160,115 +119,45 @@ export async function createCategoryAction(name: string): Promise<{
   }
 }
 
-export async function updateCategoryAction(
-  id: string,
-  name: string
-): Promise<{
-  success: boolean;
-  category?: CategoryData;
-  error?: string;
-}> {
+// Update category name
+export async function updateCategoryAction(id: string, name: string) {
   try {
-    if (!id || !name || !name.trim()) {
-      return { success: false, error: "Category ID and valid name are required" };
-    }
+    const trimmed = name?.trim();
+    if (!id || !trimmed) return { success: false, error: "Category ID and name are required" };
 
     await dbConnect();
 
-    const trimmedName = name.trim();
-
-    // Uses collation index { name: 1 } for case-insensitive uniqueness check
-    const existingName = await ImageCategory.findOne({
-      name: trimmedName,
-      _id: { $ne: id },
-    })
+    const duplicate = await ImageCategory.findOne({ name: trimmed, _id: { $ne: id } })
       .collation({ locale: "en", strength: 2 })
       .select("_id")
       .lean();
+    if (duplicate) return { success: false, error: "A category with this name already exists" };
 
-    if (existingName) {
-      return {
-        success: false,
-        error: "A category with this name already exists",
-      };
-    }
-
-    let baseSlug = slugify(trimmedName, { lower: true, strict: true });
-    if (!baseSlug) {
-      baseSlug = `category-${Date.now().toString().slice(-6)}`;
-    }
-
-    let finalSlug = baseSlug;
-    // Uses unique index on slug
-    const existingSlug = await ImageCategory.findOne({
-      slug: finalSlug,
-      _id: { $ne: id },
-    })
-      .select("_id")
-      .lean();
-
-    if (existingSlug) {
-      finalSlug = `${baseSlug}-${Date.now().toString().slice(-4)}`;
-    }
-
+    const slug = await generateUniqueSlug(trimmed, id);
     const updated = await ImageCategory.findByIdAndUpdate(
       id,
-      { name: trimmedName, slug: finalSlug },
+      { name: trimmed, slug },
       { new: true }
-    );
+    ).lean();
 
-    if (!updated) {
-      return { success: false, error: "Category not found" };
-    }
+    if (!updated) return { success: false, error: "Category not found" };
 
-    const [categoryWithStats] = await ImageCategory.aggregate([
-      { $match: { _id: updated._id } },
-      {
-        $lookup: {
-          from: Image.collection.name,
-          let: { catId: "$_id" },
-          pipeline: [
-            // Uses compound index { categoryId: 1, position: 1 }
-            { $match: { $expr: { $eq: ["$categoryId", "$$catId"] } } },
-            { $sort: { position: 1 } },
-            { $project: { url: 1, title: 1 } },
-          ],
-          as: "categoryImages",
-        },
-      },
-      {
-        $project: {
-          _id: { $toString: "$_id" },
-          name: 1,
-          slug: 1,
-          position: 1,
-          count: { $size: "$categoryImages" },
-          img: {
-            $ifNull: [
-              { $arrayElemAt: ["$categoryImages.url", 0] },
-              "https://images.unsplash.com/photo-1506863530036-1efeddceb993?w=600&h=440&fit=crop&auto=format",
-            ],
-          },
-          alt: {
-            $ifNull: [
-              { $arrayElemAt: ["$categoryImages.title", 0] },
-              { $concat: ["$name", " photo collection"] },
-            ],
-          },
-        },
-      },
+    const [count, firstImage] = await Promise.all([
+      Image.countDocuments({ categoryId: id }),
+      Image.findOne({ categoryId: id }).sort({ position: 1 }).select("url").lean(),
     ]);
 
     return {
       success: true,
-      category: categoryWithStats || {
+      category: {
         _id: updated._id.toString(),
         name: updated.name,
         slug: updated.slug,
         position: updated.position,
-        count: 0,
-        img: "https://images.unsplash.com/photo-1506863530036-1efeddceb993?w=600&h=440&fit=crop&auto=format",
+        count,
+        img: getPublicImageUrl(firstImage?.url),
         alt: `${updated.name} photo collection`,
+        createdAt: updated.createdAt?.toISOString(),
       },
     };
   } catch (error) {
@@ -280,20 +169,16 @@ export async function updateCategoryAction(
   }
 }
 
-export async function deleteCategoryAction(id: string): Promise<{
-  success: boolean;
-  error?: string;
-}> {
+// Delete category and all its images
+export async function deleteCategoryAction(id: string) {
   try {
-    if (!id) {
-      return { success: false, error: "Category ID is required" };
-    }
+    if (!id) return { success: false, error: "Category ID is required" };
 
     await dbConnect();
-
-    await ImageCategory.findByIdAndDelete(id);
-    // Uses { categoryId: 1 } index prefix on images collection
-    await Image.deleteMany({ categoryId: id });
+    await Promise.all([
+      ImageCategory.findByIdAndDelete(id),
+      Image.deleteMany({ categoryId: id }),
+    ]);
 
     return { success: true };
   } catch (error) {
@@ -305,35 +190,28 @@ export async function deleteCategoryAction(id: string): Promise<{
   }
 }
 
-export async function reorderCategoriesAction(
-  orderedIds: string[]
-): Promise<{
-  success: boolean;
-  error?: string;
-}> {
+// Reorder categories
+export async function reorderCategoriesAction(orderedIds: string[]) {
   try {
-    if (!orderedIds || !orderedIds.length) {
-      return { success: true };
-    }
+    if (!orderedIds?.length) return { success: true };
 
     await dbConnect();
-
-    const bulkOps = orderedIds.map((id, index) => ({
-      updateOne: {
-        filter: { _id: id },
-        update: { $set: { position: index } },
-      },
-    }));
-
-    await ImageCategory.bulkWrite(bulkOps);
+    await ImageCategory.bulkWrite(
+      orderedIds.map((id, index) => ({
+        updateOne: {
+          filter: { _id: id },
+          update: { $set: { position: index } },
+        },
+      }))
+    );
 
     return { success: true };
   } catch (error) {
     console.error("Error reordering categories:", error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to reorder categories",
+      error: error instanceof Error ? error.message : "Failed to reorder categories",
     };
   }
 }
+

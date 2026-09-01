@@ -3,6 +3,7 @@
 import dbConnect from "@/backend/config/dbConnect";
 import { ImageCategory } from "@/backend/models/imageCategory.model";
 import { Image } from "@/backend/models/images.model";
+import { getPublicImageUrl } from "@/backend/lib/publicImageUrl";
 
 export interface ImageData {
   _id: string;
@@ -14,34 +15,30 @@ export interface ImageData {
   createdAt?: string;
 }
 
-export async function getImagesByCategoryAction(categoryId: string): Promise<{
-  success: boolean;
-  images?: ImageData[];
-  error?: string;
-}> {
+// Helper to format MongoDB document into ImageData
+function formatImage(img: any): ImageData {
+  return {
+    _id: img._id.toString(),
+    title: img.title || "",
+    url: getPublicImageUrl(img.url),
+    categoryId: img.categoryId.toString(),
+    position: img.position,
+    description: img.description || "",
+    createdAt: img.createdAt?.toISOString?.() || img.createdAt,
+  };
+}
+
+// Fetch all images for a category
+export async function getImagesByCategoryAction(categoryId: string) {
   try {
-    if (!categoryId) {
-      return { success: false, error: "Category ID is required" };
-    }
+    if (!categoryId) return { success: false, error: "Category ID is required" };
 
     await dbConnect();
-
-    // Uses compound index { categoryId: 1, position: 1 }
-    const images = await Image.find({ categoryId })
-      .sort({ position: 1 })
-      .lean();
+    const images = await Image.find({ categoryId }).sort({ position: 1 }).lean();
 
     return {
       success: true,
-      images: images.map((img) => ({
-        _id: img._id.toString(),
-        title: img.title || "",
-        url: img.url,
-        categoryId: img.categoryId.toString(),
-        position: img.position,
-        description: img.description || "",
-        createdAt: img.createdAt?.toISOString(),
-      })),
+      images: images.map(formatImage),
     };
   } catch (error) {
     console.error("Error fetching images:", error);
@@ -52,27 +49,21 @@ export async function getImagesByCategoryAction(categoryId: string): Promise<{
   }
 }
 
+// Save newly uploaded images
 export async function saveUploadedImagesAction(
   categoryId: string,
   imagesToSave: { url: string; title?: string; description?: string }[]
-): Promise<{
-  success: boolean;
-  images?: ImageData[];
-  error?: string;
-}> {
+) {
   try {
-    if (!categoryId || !imagesToSave || !imagesToSave.length) {
+    if (!categoryId || !imagesToSave?.length) {
       return { success: false, error: "Invalid upload parameters" };
     }
 
     await dbConnect();
 
-    const category = await ImageCategory.findById(categoryId).select("_id");
-    if (!category) {
-      return { success: false, error: "Category not found" };
-    }
+    // const category = await ImageCategory.findById(categoryId).select("_id");
+    // if (!category) return { success: false, error: "Category not found" };
 
-    // Covered query using index { categoryId: 1, position: 1 } in reverse
     const lastImage = await Image.findOne({ categoryId })
       .sort({ position: -1 })
       .select("position")
@@ -91,15 +82,7 @@ export async function saveUploadedImagesAction(
 
     return {
       success: true,
-      images: inserted.map((img) => ({
-        _id: img._id.toString(),
-        title: img.title || "",
-        url: img.url,
-        categoryId: img.categoryId.toString(),
-        position: img.position,
-        description: img.description || "",
-        createdAt: img.createdAt?.toISOString(),
-      })),
+      images: inserted.map(formatImage),
     };
   } catch (error) {
     console.error("Error saving uploaded images:", error);
@@ -110,18 +93,13 @@ export async function saveUploadedImagesAction(
   }
 }
 
+// Update image details (title/description)
 export async function updateImageAction(
   imageId: string,
   data: { title?: string; description?: string }
-): Promise<{
-  success: boolean;
-  image?: ImageData;
-  error?: string;
-}> {
+) {
   try {
-    if (!imageId) {
-      return { success: false, error: "Image ID is required" };
-    }
+    if (!imageId) return { success: false, error: "Image ID is required" };
 
     await dbConnect();
 
@@ -132,23 +110,13 @@ export async function updateImageAction(
         description: data.description?.trim() || "",
       },
       { new: true }
-    );
+    ).lean();
 
-    if (!updated) {
-      return { success: false, error: "Image not found" };
-    }
+    if (!updated) return { success: false, error: "Image not found" };
 
     return {
       success: true,
-      image: {
-        _id: updated._id.toString(),
-        title: updated.title || "",
-        url: updated.url,
-        categoryId: updated.categoryId.toString(),
-        position: updated.position,
-        description: updated.description || "",
-        createdAt: updated.createdAt?.toISOString(),
-      },
+      image: formatImage(updated),
     };
   } catch (error) {
     console.error("Error updating image:", error);
@@ -159,28 +127,24 @@ export async function updateImageAction(
   }
 }
 
+// Reorder images within a category
 export async function reorderImagesAction(
   categoryId: string,
   orderedIds: string[]
-): Promise<{
-  success: boolean;
-  error?: string;
-}> {
+) {
   try {
-    if (!categoryId || !orderedIds || !orderedIds.length) {
-      return { success: true };
-    }
+    if (!categoryId || !orderedIds?.length) return { success: true };
 
     await dbConnect();
 
-    const bulkOps = orderedIds.map((id, index) => ({
-      updateOne: {
-        filter: { _id: id, categoryId },
-        update: { $set: { position: index } },
-      },
-    }));
-
-    await Image.bulkWrite(bulkOps);
+    await Image.bulkWrite(
+      orderedIds.map((id, index) => ({
+        updateOne: {
+          filter: { _id: id, categoryId },
+          update: { $set: { position: index } },
+        },
+      }))
+    );
 
     return { success: true };
   } catch (error) {
@@ -192,17 +156,12 @@ export async function reorderImagesAction(
   }
 }
 
-export async function deleteImageAction(imageId: string): Promise<{
-  success: boolean;
-  error?: string;
-}> {
+// Delete image
+export async function deleteImageAction(imageId: string) {
   try {
-    if (!imageId) {
-      return { success: false, error: "Image ID is required" };
-    }
+    if (!imageId) return { success: false, error: "Image ID is required" };
 
     await dbConnect();
-
     await Image.findByIdAndDelete(imageId);
 
     return { success: true };
@@ -214,3 +173,4 @@ export async function deleteImageAction(imageId: string): Promise<{
     };
   }
 }
+
