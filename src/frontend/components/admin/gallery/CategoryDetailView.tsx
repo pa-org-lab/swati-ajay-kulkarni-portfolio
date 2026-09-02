@@ -19,10 +19,10 @@ import {
   type ImageData,
   reorderImagesAction,
 } from "@/backend/actions/image.action";
-import ConfirmationModal from "@/frontend/components/common/ConfirmationModal";
+import ConfirmationModal from "@/frontend/components/admin/common/ConfirmationModal";
 import ImageGridSkeleton, {
   ImageCardSkeleton,
-} from "@/frontend/components/common/ImageCardSkeleton";
+} from "@/frontend/components/admin/common/ImageCardSkeleton";
 import EditImageModal from "./EditImageModal";
 
 interface CategoryDetailViewProps {
@@ -364,13 +364,12 @@ export default function CategoryDetailView({
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDragEnd={handleDragEnd}
                   onDrop={(e) => handleDrop(e, index)}
-                  className={`group relative bg-white rounded-2xl overflow-hidden border transition-all duration-200 cursor-grab active:cursor-grabbing flex flex-col ${
-                    isDragging
+                  className={`group relative bg-white rounded-2xl overflow-hidden border transition-all duration-200 cursor-grab active:cursor-grabbing flex flex-col ${isDragging
                       ? "opacity-40 scale-95 border-dashed border-[#a8522e]"
                       : isOver
                         ? "border-[#a8522e] ring-2 ring-[#a8522e]/30 -translate-y-1 shadow-lg"
                         : "border-[#e2d9d2] shadow-[0_2px_12px_rgba(43,31,24,0.06)] hover:shadow-[0_8px_24px_rgba(43,31,24,0.12)] hover:-translate-y-0.5"
-                  }`}
+                    }`}
                 >
                   {/* Image Container with 4:3 ratio */}
                   <div

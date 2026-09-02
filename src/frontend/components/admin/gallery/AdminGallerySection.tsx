@@ -8,8 +8,8 @@ import {
   getCategoriesAction,
   reorderCategoriesAction,
 } from "@/backend/actions/category.action";
-import ImageGridSkeleton from "@/frontend/components/common/ImageCardSkeleton";
-import ConfirmationModal from "@/frontend/components/common/ConfirmationModal";
+import ImageGridSkeleton from "@/frontend/components/admin/common/ImageCardSkeleton";
+import ConfirmationModal from "@/frontend/components/admin/common/ConfirmationModal";
 import CategoryDetailView from "./CategoryDetailView";
 import CreateCategoryModal from "./CreateCategoryModal";
 import EditCategoryModal from "./EditCategoryModal";

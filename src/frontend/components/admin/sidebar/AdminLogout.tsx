@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { FiLogOut } from "react-icons/fi";
 import { logout } from "@/backend/actions/auth.action";
-import ConfirmationModal from "@/frontend/components/common/ConfirmationModal";
+import ConfirmationModal from "@/frontend/components/admin/common/ConfirmationModal";
 
 interface AdminLogoutProps {
   onLogout?: () => void;
