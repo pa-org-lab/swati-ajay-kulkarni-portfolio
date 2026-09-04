@@ -1,7 +1,12 @@
+import Navbar from "@/frontend/components/public/common/Navbar";
+
 export default function PublicLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return <>
+    <Navbar />
+    {children}
+  </>;
 }
