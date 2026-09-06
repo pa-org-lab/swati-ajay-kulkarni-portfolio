@@ -3,6 +3,7 @@
 import dbConnect from "@/backend/config/dbConnect";
 import { getPublicImageUrl } from "@/backend/lib/publicImageUrl";
 import { Image, type Images } from "@/backend/models/images.model";
+import mongoose from "mongoose";
 
 export interface ImageData {
   _id: string;
@@ -216,4 +217,104 @@ export async function deleteImageAction(imageId: string) {
     };
   }
 }
+
+export interface PublicGalleryImageItem {
+  _id: string;
+  title: string;
+  url: string;
+  categoryId: string;
+  categoryName: string;
+  categorySlug: string;
+  description?: string;
+  createdAt?: string;
+}
+
+// Fetch public gallery images with category details
+export async function getPublicGalleryImagesAction(filter?: {
+  categorySlug?: string;
+  sort?: "newest" | "oldest" | "title";
+}) {
+  try {
+    await dbConnect();
+
+    const pipeline: mongoose.PipelineStage[] = [
+      {
+        $lookup: {
+          from: "imagecategories",
+          localField: "categoryId",
+          foreignField: "_id",
+          as: "category",
+        },
+      },
+      {
+        $unwind: {
+          path: "$category",
+          preserveNullAndEmptyArrays: false,
+        },
+      },
+      {
+        $match: {
+          "category.slug": { $nin: ["hero-section", "hero", "herosection"] },
+          "category.name": { $not: { $regex: /^hero/i } },
+        },
+      },
+    ];
+
+    if (filter?.categorySlug && filter.categorySlug !== "all") {
+      pipeline.push({
+        $match: {
+          "category.slug": { $regex: new RegExp(`^${filter.categorySlug}$`, "i") },
+        },
+      });
+    }
+
+
+    let sortStage: Record<string, 1 | -1> = { position: 1, _id: 1 };
+    if (filter?.sort === "newest") {
+      sortStage = { createdAt: -1, _id: -1 };
+    } else if (filter?.sort === "oldest") {
+      sortStage = { createdAt: 1, _id: 1 };
+    } else if (filter?.sort === "title") {
+      sortStage = { title: 1 };
+    }
+
+    pipeline.push({ $sort: sortStage });
+
+    const rawImages = await Image.aggregate(pipeline);
+
+    const images: PublicGalleryImageItem[] = rawImages.map((record) => {
+      const rawCreatedAt = record.createdAt;
+      const createdAtStr =
+        rawCreatedAt instanceof Date
+          ? rawCreatedAt.toISOString()
+          : typeof rawCreatedAt === "string"
+            ? rawCreatedAt
+            : undefined;
+
+      return {
+        _id: String(record._id),
+        title: typeof record.title === "string" ? record.title : "",
+        url: getPublicImageUrl(typeof record.url === "string" ? record.url : ""),
+        categoryId: record.categoryId ? String(record.categoryId) : "",
+        categoryName: record.category?.name || "Portfolio",
+        categorySlug: record.category?.slug || "portfolio",
+        description: typeof record.description === "string" ? record.description : "",
+        createdAt: createdAtStr,
+      };
+    });
+
+    return {
+      success: true,
+      images,
+    };
+  } catch (error) {
+    console.error("Error fetching public gallery images:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch gallery images",
+      images: [],
+    };
+  }
+}
+
 

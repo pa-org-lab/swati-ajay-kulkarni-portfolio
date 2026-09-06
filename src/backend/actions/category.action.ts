@@ -77,6 +77,65 @@ export async function getCategoriesAction() {
   }
 }
 
+// Get public categories for gallery, excluding hero-section
+export async function getPublicCategoriesAction() {
+  try {
+    await dbConnect();
+
+    const categories: CategoryData[] = await ImageCategory.aggregate([
+      {
+        $match: {
+          slug: { $nin: ["hero-section", "hero", "herosection"] },
+          name: { $not: { $regex: /^hero/i } },
+        },
+      },
+      { $sort: { position: 1 } },
+      {
+        $lookup: {
+          from: "images",
+          localField: "_id",
+          foreignField: "categoryId",
+          as: "images",
+        },
+      },
+      {
+        $project: {
+          _id: { $toString: "$_id" },
+          name: 1,
+          slug: 1,
+          position: 1,
+          count: { $size: "$images" },
+          img: { $ifNull: [{ $arrayElemAt: ["$images.url", 0] }, ""] },
+          alt: { $concat: ["$name", " photo collection"] },
+          createdAt: {
+            $dateToString: {
+              date: "$createdAt",
+              format: "%Y-%m-%dT%H:%M:%S.%LZ",
+              onNull: null,
+            },
+          },
+        },
+      },
+    ]);
+
+    return {
+      success: true,
+      categories: categories.map((cat) => ({
+        ...cat,
+        img: getPublicImageUrl(cat.img),
+      })),
+    };
+  } catch (error) {
+    console.error("Error fetching public categories:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch categories",
+      categories: [],
+    };
+  }
+}
+
+
 // Create new category
 export async function createCategoryAction(name: string){
   try {
