@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "pub-80516a820ef941df9005d1d5efdd5526.r2.dev",
       },
+      {
+        protocol: "https",
+        hostname: "images.swatiajaykulkarni.com",
+      },
     ],
   },
 };
