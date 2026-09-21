@@ -4,6 +4,7 @@ import dbConnect from "@/backend/config/dbConnect";
 import { getPublicImageUrl } from "@/backend/lib/publicImageUrl";
 import { Image, type Images } from "@/backend/models/images.model";
 import mongoose from "mongoose";
+import { ImageCategory } from "../models/imageCategory.model";
 
 export interface ImageData {
   _id: string;
@@ -317,4 +318,58 @@ export async function getPublicGalleryImagesAction(filter?: {
   }
 }
 
+export interface HeroImageItem {
+  title: string;
+  description: string;
+  position: number;
+  url: string;
+} 
 
+export async function getHeroImagesAction() {
+  try {
+    await dbConnect();
+
+    const heroImages = await ImageCategory.aggregate<HeroImageItem>([
+      {
+        $match: { slug: "hero-section" },
+      },
+      {
+        $lookup: {
+          from: "images",
+          localField: "_id",
+          foreignField: "categoryId",
+          pipeline: [
+            { $sort: { position: 1 } },
+            {
+              $project: {
+                _id: 0,
+                url: 1,
+                title: 1,
+                description: 1,
+                position: 1,
+              },
+            },
+          ],
+          as: "images",
+        },
+      },
+      { $unwind: "$images" },
+      { $replaceRoot: { newRoot: "$images" } },
+    ]);
+
+    return {
+      success: true,
+      images: heroImages.map((img) => ({
+        ...img,
+        url: getPublicImageUrl(img.url),
+      })),
+    };
+  } catch (error) {
+    console.error("Error fetching hero images:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch hero images",
+      images: [],
+    };
+  }
+}
