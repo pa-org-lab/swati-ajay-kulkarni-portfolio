@@ -137,7 +137,7 @@ export async function getPublicCategoriesAction() {
 
 
 // Create new category
-export async function createCategoryAction(name: string){
+export async function createCategoryAction(name: string) {
   try {
     const trimmed = name?.trim();
     if (!trimmed) return { success: false, error: "Category name is required" };
@@ -274,3 +274,60 @@ export async function reorderCategoriesAction(orderedIds: string[]) {
   }
 }
 
+// get public all category with the first image except the hero-section and image count 
+
+export async function getPublicCategoriesWithFirstImage() {
+  try {
+    await dbConnect();
+
+    const categories: CategoryData[] = await ImageCategory.aggregate([
+      {
+        $match: {
+          slug: { $nin: ["hero-section"] },
+        },
+      },
+      { $sort: { position: 1 } },
+      {
+        $lookup: {
+          from: "images",
+          localField: "_id",
+          foreignField: "categoryId",
+          as: "images",
+        },
+      },
+      {
+        $project: {
+          _id: { $toString: "$_id" },
+          name: 1,
+          slug: 1,
+          position: 1,
+          count: { $size: "$images" },
+          img: { $ifNull: [{ $arrayElemAt: ["$images.url", 0] }, ""] },
+          alt: { $concat: ["$name", " photo collection"] },
+          createdAt: {
+            $dateToString: {
+              date: "$createdAt",
+              format: "%Y-%m-%dT%H:%M:%S.%LZ",
+              onNull: null,
+            },
+          },
+        },
+      },
+    ]);
+
+    return {
+      success: true,
+      categories: categories.map((cat) => ({
+        ...cat,
+        img: getPublicImageUrl(cat.img),
+      })),
+    };
+  } catch (error) {
+    console.error("Error fetching public categories with first image:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch public categories with first image",
+      categories: [],
+    };
+  }
+}
