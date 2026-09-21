@@ -11,6 +11,7 @@ export interface CategoryData {
   name: string;
   slug: string;
   position: number;
+  description?: string;
   count: number;
   img: string;
   alt: string;
@@ -47,6 +48,7 @@ export async function getCategoriesAction() {
           name: 1,
           slug: 1,
           position: 1,
+          description: { $ifNull: ["$description", ""] },
           count: { $size: "$images" },
           img: { $ifNull: [{ $arrayElemAt: ["$images.url", 0] }, ""] },
           alt: { $concat: ["$name", " photo collection"] },
@@ -104,6 +106,7 @@ export async function getPublicCategoriesAction() {
           name: 1,
           slug: 1,
           position: 1,
+          description: { $ifNull: ["$description", ""] },
           count: { $size: "$images" },
           img: { $ifNull: [{ $arrayElemAt: ["$images.url", 0] }, ""] },
           alt: { $concat: ["$name", " photo collection"] },
@@ -137,7 +140,7 @@ export async function getPublicCategoriesAction() {
 
 
 // Create new category
-export async function createCategoryAction(name: string) {
+export async function createCategoryAction(name: string, description?: string) {
   try {
     const trimmed = name?.trim();
     if (!trimmed) return { success: false, error: "Category name is required" };
@@ -154,7 +157,14 @@ export async function createCategoryAction(name: string) {
     const last = await ImageCategory.findOne().sort({ position: -1 }).select("position").lean();
     const position = last ? last.position + 1 : 0;
 
-    const newCategory = await ImageCategory.create({ name: trimmed, slug, position });
+    const trimmedDescription = description?.trim() || "";
+
+    const newCategory = await ImageCategory.create({
+      name: trimmed,
+      slug,
+      position,
+      description: trimmedDescription,
+    });
 
     return {
       success: true,
@@ -163,6 +173,7 @@ export async function createCategoryAction(name: string) {
         name: newCategory.name,
         slug: newCategory.slug,
         position: newCategory.position,
+        description: newCategory.description || "",
         count: 0,
         img: "",
         alt: `${newCategory.name} photo collection`,
@@ -178,8 +189,8 @@ export async function createCategoryAction(name: string) {
   }
 }
 
-// Update category name
-export async function updateCategoryAction(id: string, name: string) {
+// Update category
+export async function updateCategoryAction(id: string, name: string, description?: string) {
   try {
     const trimmed = name?.trim();
     if (!id || !trimmed) return { success: false, error: "Category ID and name are required" };
@@ -193,9 +204,17 @@ export async function updateCategoryAction(id: string, name: string) {
     if (duplicate) return { success: false, error: "A category with this name already exists" };
 
     const slug = await generateUniqueSlug(trimmed, id);
+    const updatePayload: { name: string; slug: string; description?: string } = {
+      name: trimmed,
+      slug,
+    };
+    if (description !== undefined) {
+      updatePayload.description = description.trim();
+    }
+
     const updated = await ImageCategory.findByIdAndUpdate(
       id,
-      { name: trimmed, slug },
+      updatePayload,
       { new: true }
     ).lean();
 
@@ -213,6 +232,7 @@ export async function updateCategoryAction(id: string, name: string) {
         name: updated.name,
         slug: updated.slug,
         position: updated.position,
+        description: updated.description || "",
         count,
         img: getPublicImageUrl(firstImage?.url),
         alt: `${updated.name} photo collection`,
@@ -301,6 +321,7 @@ export async function getPublicCategoriesWithFirstImage() {
           name: 1,
           slug: 1,
           position: 1,
+          description: { $ifNull: ["$description", ""] },
           count: { $size: "$images" },
           img: { $ifNull: [{ $arrayElemAt: ["$images.url", 0] }, ""] },
           alt: { $concat: ["$name", " photo collection"] },

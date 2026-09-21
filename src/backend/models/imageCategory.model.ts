@@ -4,6 +4,7 @@ export interface ImageCategory extends Document {
   name: string;
   slug: string;
   position: number;
+  description?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,6 +26,11 @@ const ImageCategorySchema = new Schema<ImageCategory>(
       type: Number,
       required: true,
       min: 0,
+    },
+    description: {
+      type: String,
+      trim: true,
+      default: "",
     },
   },
   { timestamps: true }

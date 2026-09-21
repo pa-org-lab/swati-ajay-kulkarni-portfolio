@@ -22,12 +22,14 @@ export default function EditCategoryModal({
   onSuccess,
 }: EditCategoryModalProps) {
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (category) {
-      setName(category.name);
+      setName(category.name || "");
+      setDescription(category.description || "");
       setErrorMsg("");
     }
   }, [category]);
@@ -38,13 +40,19 @@ export default function EditCategoryModal({
     e.preventDefault();
     setErrorMsg("");
 
-    if (!name.trim()) {
+    const trimmedName = name.trim();
+    const trimmedDesc = description.trim();
+
+    if (!trimmedName) {
       setErrorMsg("Please enter a category name");
       toast.error("Please enter a category name");
       return;
     }
 
-    if (name.trim() === category.name) {
+    if (
+      trimmedName === category.name &&
+      trimmedDesc === (category.description || "")
+    ) {
       onClose();
       return;
     }
@@ -53,9 +61,15 @@ export default function EditCategoryModal({
     const toastId = toast.loading("Updating category...");
 
     try {
-      const res = await updateCategoryAction(category._id, name.trim());
+      const res = await updateCategoryAction(
+        category._id,
+        trimmedName,
+        trimmedDesc
+      );
       if (res.success && res.category) {
-        toast.success(`Renamed to "${res.category.name}"!`, { id: toastId });
+        toast.success(`Category "${res.category.name}" updated!`, {
+          id: toastId,
+        });
         setErrorMsg("");
         onSuccess(res.category);
         onClose();
@@ -95,7 +109,7 @@ export default function EditCategoryModal({
             id="edit-category-title"
             className="text-[19px] font-bold text-[#2b1f18]"
           >
-            Rename Category
+            Edit Category
           </h2>
           <button
             type="button"
@@ -137,6 +151,29 @@ export default function EditCategoryModal({
                 {errorMsg}
               </p>
             )}
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label
+                htmlFor="edit-category-description"
+                className="block text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6b5a50]"
+              >
+                Description
+              </label>
+              <span className="text-[11px] text-[#a89488] italic font-normal">
+                Optional
+              </span>
+            </div>
+            <textarea
+              id="edit-category-description"
+              rows={3}
+              placeholder="e.g. A collection of timeless wedding moments..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              disabled={isSubmitting}
+              className="w-full px-4 py-3 bg-[#fbf8f6] border border-[#d4cac2] rounded-xl text-[14.5px] text-[#2b1f18] placeholder:text-[#a89488] outline-none transition-all focus:bg-white focus:border-[#a8522e] focus:ring-2 focus:ring-[#a8522e]/15 resize-none"
+            />
           </div>
 
           {/* Actions */}

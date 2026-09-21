@@ -20,6 +20,7 @@ export default function CreateCategoryModal({
   onSuccess,
 }: CreateCategoryModalProps) {
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -39,12 +40,13 @@ export default function CreateCategoryModal({
     const toastId = toast.loading("Creating category...");
 
     try {
-      const res = await createCategoryAction(name.trim());
+      const res = await createCategoryAction(name.trim(), description.trim());
       if (res.success && res.category) {
         toast.success(`Category "${res.category.name}" created!`, {
           id: toastId,
         });
         setName("");
+        setDescription("");
         setErrorMsg("");
         onSuccess(res.category);
         onClose();
@@ -127,6 +129,29 @@ export default function CreateCategoryModal({
                 {errorMsg}
               </p>
             )}
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label
+                htmlFor="category-description"
+                className="block text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6b5a50]"
+              >
+                Description
+              </label>
+              <span className="text-[11px] text-[#a89488] italic font-normal">
+                Optional
+              </span>
+            </div>
+            <textarea
+              id="category-description"
+              rows={3}
+              placeholder="e.g. A collection of timeless wedding moments..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              disabled={isSubmitting}
+              className="w-full px-4 py-3 bg-[#fbf8f6] border border-[#d4cac2] rounded-xl text-[14.5px] text-[#2b1f18] placeholder:text-[#a89488] outline-none transition-all focus:bg-white focus:border-[#a8522e] focus:ring-2 focus:ring-[#a8522e]/15 resize-none"
+            />
           </div>
 
           {/* Modal Actions */}
