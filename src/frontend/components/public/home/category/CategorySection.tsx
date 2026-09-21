@@ -2,51 +2,25 @@
 
 import Link from "next/link";
 import AccordionGallery, { AccordionGalleryItem } from "./AccordionGallery";
+import type { CategoryData } from "@/backend/actions/category.action";
 
-const categoryItems: AccordionGalleryItem[] = [
-  {
-    image: "/images/midnight-cosmos.jpg",
-    label: "Painting",
-    worksCount: "4 WORKS",
-    description: "Vibrant abstract acrylic impasto textures and layered chromatic pigments on raw canvas.",
-    link: "/gallery?category=painting",
-    alt: "Abstract acrylic impasto painting artwork"
-  },
-  {
-    image: "/images/portrait-ethereal-gaze.jpg",
-    label: "Photography",
-    worksCount: "5 WORKS",
-    description: "Fine art studio portraiture capturing nuanced expressions, ethereal glances, and authentic human spirit.",
-    link: "/gallery?category=photography",
-    alt: "Fine art studio portrait photography"
-  },
-  {
-    image: "/images/landscape-misty-peaks.jpg",
-    label: "Trekking",
-    worksCount: "3 WORKS",
-    description: "Expedition visual chronicles through misty sunrise ridges, solitary peaks, and raw high-altitude wilderness.",
-    link: "/gallery?category=trekking",
-    alt: "Mountain trekking and backcountry landscape photography"
-  },
-  {
-    image: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1200&q=80",
-    label: "Cooking",
-    worksCount: "6 WORKS",
-    description: "Artisan culinary compositions, rustic hearth preparations, and intimate gastronomical storytelling.",
-    link: "/gallery?category=cooking",
-    alt: "Artisan culinary and gastronomy photography"
-  },
-  {
-    image: "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=1200&q=80",
-    label: "Gardening",
-    worksCount: "4 WORKS",
-    description: "Botanical studies, verdant garden foliage, and peaceful morning harmonies with living soil.",
-    link: "/gallery?category=gardening",
-    alt: "Lush botanical garden and floriculture photography"
+interface CategorySectionProps {
+  categories?: CategoryData[];
+}
+
+export default function CategorySection({ categories = [] }: CategorySectionProps) {
+  if (!categories || categories.length === 0) {
+    return null;
   }
-];
 
-export default function CategorySection() {
+  const categoryItems: AccordionGalleryItem[] = categories.map((cat) => ({
+    image: cat.img || "/images/midnight-cosmos.jpg",
+    label: cat.name,
+    worksCount: `${cat.count} ${cat.count === 1 ? "WORK" : "WORKS"}`,
+    description: cat.description || "",
+    link: `/gallery?category=${encodeURIComponent(cat.slug)}`,
+    alt: cat.alt || `${cat.name} photo collection`,
+  }));
   return (
     <section
       id="collections"
