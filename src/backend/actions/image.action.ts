@@ -373,3 +373,67 @@ export async function getHeroImagesAction() {
     };
   }
 }
+
+
+export interface GalleryGlimpseItem {
+  id: string;
+  url: string;
+  title: string;
+}
+
+// fetch the public home page gallery glimpse section 
+export async function getGalleryGlimpseAction() {
+  try {
+    await dbConnect();
+
+    const glimpseImages = await ImageCategory.aggregate<GalleryGlimpseItem>([
+      {
+        $match: {
+          slug: { $nin: ["hero-section"] },
+        },
+      },
+      { $sort: { position: 1, _id: 1 } },
+      {
+        $lookup: {
+          from: "images",
+          localField: "_id",
+          foreignField: "categoryId",
+          pipeline: [
+            { $sort: { position: 1, _id: 1 } },
+            { $limit: 5 },
+            {
+              $project: {
+                _id: 0,
+                id: { $toString: "$_id" },
+                url: 1,
+                title: 1,
+              },
+            },
+          ],
+          as: "images",
+        },
+      },
+      { $unwind: "$images" },
+      { $replaceRoot: { newRoot: "$images" } },
+    ]);
+
+    return {
+      success: true,
+      images: glimpseImages.map((img) => ({
+        id: String(img.id),
+        url: getPublicImageUrl(img.url),
+        title: typeof img.title === "string" ? img.title : "",
+      })),
+    };
+  } catch (error) {
+    console.error("Error fetching gallery glimpse images:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch gallery glimpse images",
+      images: [],
+    };
+  }
+}
