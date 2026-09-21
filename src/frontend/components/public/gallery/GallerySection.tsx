@@ -1,15 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-  getPublicCategoriesAction,
-  type CategoryData,
-} from "@/backend/actions/category.action";
-import {
-  getPublicGalleryImagesAction,
-  type PublicGalleryImageItem,
-} from "@/backend/actions/image.action";
+import type { CategoryData } from "@/backend/actions/category.action";
+import type { PublicGalleryImageItem } from "@/backend/actions/image.action";
 import GalleryHeader from "./GalleryHeader";
 import GalleryFilterBar, {
   type GalleryCategoryTab,
@@ -19,7 +13,15 @@ import GalleryFilterBar, {
 import GalleryGrid from "./GalleryGrid";
 import GalleryLightbox from "./GalleryLightbox";
 
-export default function GallerySection() {
+interface GallerySectionProps {
+  categories?: CategoryData[];
+  images?: PublicGalleryImageItem[];
+}
+
+export default function GallerySection({
+  categories = [],
+  images = [],
+}: GallerySectionProps) {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get("category") || "all";
 
@@ -27,10 +29,6 @@ export default function GallerySection() {
   const [activeSort, setActiveSort] = useState<GallerySortOption>("curated");
   const [activeLayout, setActiveLayout] = useState<GalleryLayoutOption>("drift");
   const [searchQuery, setSearchQuery] = useState<string>("");
-
-  const [dbImages, setDbImages] = useState<PublicGalleryImageItem[]>([]);
-  const [dbCategories, setDbCategories] = useState<CategoryData[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
@@ -42,40 +40,13 @@ export default function GallerySection() {
     }
   }, [searchParams]);
 
-  // Load categories and images from DB (hero-section strictly excluded)
-  const loadGalleryData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const [catRes, imgRes] = await Promise.all([
-        getPublicCategoriesAction(),
-        getPublicGalleryImagesAction(),
-      ]);
-
-      if (catRes.success && catRes.categories) {
-        setDbCategories(catRes.categories);
-      }
-
-      if (imgRes.success && imgRes.images) {
-        setDbImages(imgRes.images);
-      }
-    } catch (err) {
-      console.error("Failed to load gallery data from DB:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadGalleryData();
-  }, [loadGalleryData]);
-
   // Dynamically build category tabs from backend categories, strictly excluding hero-section
   const categoryTabs = useMemo<GalleryCategoryTab[]>(() => {
     const tabs: GalleryCategoryTab[] = [
       { id: "all", name: "ALL", slug: "all" },
     ];
 
-    for (const cat of dbCategories) {
+    for (const cat of categories) {
       const slugLower = cat.slug.toLowerCase();
       const nameLower = cat.name.toLowerCase();
 
@@ -98,11 +69,11 @@ export default function GallerySection() {
     }
 
     return tabs;
-  }, [dbCategories]);
+  }, [categories]);
 
   // Filter and sort images fetched from backend (which already excludes hero-section)
   const filteredImages = useMemo<PublicGalleryImageItem[]>(() => {
-    let result = dbImages;
+    let result = images;
 
     // Filter by category
     if (activeCategory && activeCategory !== "all") {
@@ -146,7 +117,7 @@ export default function GallerySection() {
     }
 
     return sorted;
-  }, [dbImages, activeCategory, searchQuery, activeSort]);
+  }, [images, activeCategory, searchQuery, activeSort]);
 
 
   return (
@@ -175,7 +146,7 @@ export default function GallerySection() {
         {/* 3. Clean Responsive Gallery Grid (Zero Muddy Overlays or Dark Shadows) */}
         <GalleryGrid
           images={filteredImages}
-          isLoading={isLoading}
+          isLoading={false}
           layout={activeLayout}
           onImageClick={(index) => setLightboxIndex(index)}
         />
