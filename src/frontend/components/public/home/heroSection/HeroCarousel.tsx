@@ -30,7 +30,7 @@ export default function HeroCarousel({
       {/* Background Image Crossfade with smooth scale */}
       <AnimatePresence initial={false}>
         <motion.div
-          key={activeItem.id}
+          key={`${activeItem.position}-${activeItem.url}`}
           className="absolute inset-0 h-full w-full"
           initial={{ opacity: 0, scale: 1.05 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -41,8 +41,8 @@ export default function HeroCarousel({
           }}
         >
           <Image
-            src={activeItem.src}
-            alt={activeItem.alt || activeItem.title}
+            src={activeItem.url}
+            alt={activeItem.title}
             fill
             priority={activeIndex === 0}
             sizes="(max-width: 1024px) 100vw, 60vw"
@@ -81,21 +81,23 @@ export default function HeroCarousel({
       )}
 
       {/* Bottom Left Artwork Caption & Pagination Overlay */}
-      <div className="absolute bottom-6 left-5 sm:bottom-10 sm:left-10 md:bottom-12 md:left-12 z-20 flex flex-col gap-1 pointer-events-auto">
+      <div className="absolute bottom-6 left-5 sm:bottom-10 sm:left-10 md:bottom-12 md:left-12 z-20 flex flex-col gap-1 pointer-events-auto max-w-[85%] sm:max-w-md">
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeItem.id}
+            key={`${activeItem.position}-${activeItem.url}`}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.45, ease: "easeOut" }}
           >
-            <span className="inline-block text-[10px] sm:text-[11px] font-sans font-medium uppercase tracking-[0.28em] text-white/80">
-              {activeItem.category}
-            </span>
             <h2 className="font-serif italic text-xl sm:text-3xl lg:text-4xl text-white tracking-wide drop-shadow-md">
               {activeItem.title}
             </h2>
+            {activeItem.description && (
+              <p className="text-xs sm:text-sm font-sans font-light text-white/80 line-clamp-2 mt-1 drop-shadow">
+                {activeItem.description}
+              </p>
+            )}
           </motion.div>
         </AnimatePresence>
 
@@ -106,7 +108,7 @@ export default function HeroCarousel({
               const isActive = idx === activeIndex;
               return (
                 <button
-                  key={`carousel-dot-${activeItem.id}-${idx}`}
+                  key={`carousel-dot-${idx}`}
                   type="button"
                   onClick={() => onSelectIndex(idx)}
                   aria-label={`Go to slide ${idx + 1}`}

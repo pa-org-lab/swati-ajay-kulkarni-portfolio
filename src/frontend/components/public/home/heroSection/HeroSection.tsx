@@ -6,95 +6,35 @@ import { useCallback, useEffect, useState } from "react";
 import HeroCarousel from "./HeroCarousel";
 import HeroThumbnail, { type HeroSlideItem } from "./HeroThumbnail";
 
-const heroSlides: HeroSlideItem[] = [
-  {
-    id: "1",
-    src: "/images/midnight-cosmos.jpg",
-    alt: "Vibrant abstract acrylic impasto painting on canvas with yellow, orange, and turquoise palette knife textures",
-    title: "Midnight Cosmos",
-    category: "PAINTING",
-    year: "2024",
-  },
-  {
-    id: "2",
-    src: "/images/portrait-ethereal-gaze.jpg",
-    alt: "Fine art studio portrait of a woman with bangs and striking expressive green hazel eyes",
-    title: "Ethereal Gaze",
-    category: "PORTRAIT",
-    year: "2024",
-  },
-  {
-    id: "3",
-    src: "/images/landscape-misty-peaks.jpg",
-    alt: "Cinematic misty mountain peaks bathed in golden morning sunrise light",
-    title: "Misty Peaks",
-    category: "LANDSCAPE",
-    year: "2024",
-  },
-  {
-    id: "4",
-    src: "https://images.unsplash.com/photo-1529260830199-42c24126f198?auto=format&fit=crop&w=1800&q=85",
-    alt: "Historic bridge and cathedral architecture along the river in Rome",
-    title: "Echoes of Rome",
-    category: "ARCHITECTURE",
-    year: "2023",
-  },
-  {
-    id: "5",
-    src: "https://images.unsplash.com/photo-1579783901586-d88db74b4fe4?auto=format&fit=crop&w=1800&q=85",
-    alt: "Expressive fine art oil painting texture with vibrant chromatic brushstrokes",
-    title: "Chromatic Rhythm",
-    category: "PAINTING",
-    year: "2024",
-  },
-  {
-    id: "6",
-    src: "https://images.unsplash.com/photo-1604511482975-49278f591bf4?auto=format&fit=crop&w=1800&q=85",
-    alt: "Golden hour grassy field with soft warm sunset backlight",
-    title: "Golden Whispers",
-    category: "LANDSCAPE",
-    year: "2024",
-  },
-  {
-    id: "7",
-    src: "https://images.unsplash.com/photo-1483366774565-c783b9f70e2c?auto=format&fit=crop&w=1800&q=85",
-    alt: "Worm's-eye architectural view of clean modern concrete geometry",
-    title: "Brutalist Angles",
-    category: "ARCHITECTURE",
-    year: "2023",
-  },
-  {
-    id: "8",
-    src: "https://images.unsplash.com/photo-1506863530036-1efeddceb993?auto=format&fit=crop&w=1800&q=85",
-    alt: "High-contrast black and white fine art studio portrait",
-    title: "Serenade in Monochrome",
-    category: "PORTRAIT",
-    year: "2024",
-  },
-];
+type Props = {
+  images?: HeroSlideItem[];
+};
 
-export default function HeroSection() {
+export default function HeroSection({ images = [] }: Props) {
+  const slides = images.length > 0 ? [...images].sort((a, b) => a.position - b.position) : [];
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
   const handleNext = useCallback(() => {
-    setActiveIndex((prev) => (prev + 1) % heroSlides.length);
-  }, []);
+    if (slides.length <= 1) return;
+    setActiveIndex((prev) => (prev + 1) % slides.length);
+  }, [slides.length]);
 
   const handlePrev = useCallback(() => {
+    if (slides.length <= 1) return;
     setActiveIndex(
-      (prev) => (prev - 1 + heroSlides.length) % heroSlides.length,
+      (prev) => (prev - 1 + slides.length) % slides.length,
     );
-  }, []);
+  }, [slides.length]);
 
   // Auto-advance with hover pause
   useEffect(() => {
-    if (isHovered) return;
+    if (isHovered || slides.length <= 1) return;
     const interval = setInterval(handleNext, 5500);
     return () => clearInterval(interval);
-  }, [isHovered, handleNext]);
+  }, [isHovered, handleNext, slides.length]);
 
   // Keyboard navigation support
   useEffect(() => {
@@ -106,19 +46,33 @@ export default function HeroSection() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleNext, handlePrev]);
 
-  // Upcoming 2 thumbnails
-  const nextItems = [
-    {
-      item: heroSlides[(activeIndex + 1) % heroSlides.length],
-      targetIndex: (activeIndex + 1) % heroSlides.length,
-    },
-    {
-      item: heroSlides[(activeIndex + 2) % heroSlides.length],
-      targetIndex: (activeIndex + 2) % heroSlides.length,
-    },
-  ];
+  if (slides.length === 0) {
+    return null;
+  }
 
-  const currentNumStr = (activeIndex + 1).toString().padStart(2, "0");
+  const safeActiveIndex = activeIndex >= slides.length ? 0 : activeIndex;
+  const activeItem = slides[safeActiveIndex];
+
+  // Upcoming 2 thumbnails
+  const nextItems =
+    slides.length > 1
+      ? [
+          {
+            item: slides[(safeActiveIndex + 1) % slides.length],
+            targetIndex: (safeActiveIndex + 1) % slides.length,
+          },
+          ...(slides.length > 2
+            ? [
+                {
+                  item: slides[(safeActiveIndex + 2) % slides.length],
+                  targetIndex: (safeActiveIndex + 2) % slides.length,
+                },
+              ]
+            : []),
+        ]
+      : [];
+
+  const currentNumStr = (safeActiveIndex + 1).toString().padStart(2, "0");
 
   // Touch handlers for mobile swipe
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -145,9 +99,9 @@ export default function HeroSection() {
       {/* LEFT COLUMN: Featured Artwork Canvas (58% - 60% on desktop) */}
       <div className="w-full lg:w-[58%] xl:w-[60%] h-[55vh] sm:h-[60vh] lg:h-screen min-h-[380px] lg:min-h-[720px] relative">
         <HeroCarousel
-          activeItem={heroSlides[activeIndex]}
-          activeIndex={activeIndex}
-          totalSlides={heroSlides.length}
+          activeItem={activeItem}
+          activeIndex={safeActiveIndex}
+          totalSlides={slides.length}
           onSelectIndex={setActiveIndex}
           onPrev={handlePrev}
           onNext={handleNext}
@@ -191,11 +145,20 @@ export default function HeroSection() {
           </h1>
 
           {/* Subtitle / Description with Left Accent Line */}
-          <div className="border-l border-stone-300 pl-4 sm:pl-5 my-5 sm:my-6 max-w-sm lg:max-w-md">
-            <p className="text-stone-600 text-xs sm:text-sm md:text-[14px] xl:text-[15px] leading-relaxed font-sans font-light">
-              An evolving collection of paintings, portraits, places and visual
-              moments.
-            </p>
+          <div className="border-l border-stone-300 pl-4 sm:pl-5 my-5 sm:my-6 max-w-sm lg:max-w-md min-h-[44px]">
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={`${activeItem.position}-${activeItem.url}`}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.3 }}
+                className="text-stone-600 text-xs sm:text-sm md:text-[14px] xl:text-[15px] leading-relaxed font-sans font-light"
+              >
+                {activeItem.description ||
+                  "An evolving collection of paintings, portraits, places and visual moments."}
+              </motion.p>
+            </AnimatePresence>
           </div>
 
           {/* CTA Link */}
@@ -211,11 +174,13 @@ export default function HeroSection() {
         </div>
 
         {/* Bottom Area: Upcoming Thumbnails */}
-        <div className="relative z-10 pt-8 lg:pt-4 flex items-end justify-between">
-          <div className="flex flex-col gap-2">
-            <HeroThumbnail nextItems={nextItems} onSelect={setActiveIndex} />
+        {nextItems.length > 0 && (
+          <div className="relative z-10 pt-8 lg:pt-4 flex items-end justify-between">
+            <div className="flex flex-col gap-2">
+              <HeroThumbnail nextItems={nextItems} onSelect={setActiveIndex} />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Vertical SCROLL Indicator (Desktop right edge) */}
         <div className="hidden xl:flex flex-col items-center gap-2.5 absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none select-none">
