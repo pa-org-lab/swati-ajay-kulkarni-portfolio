@@ -82,17 +82,24 @@ export default function AccordionGallery({
   const firstRunRef = useRef(true);
   const mediaSizeRef = useRef(360);
 
-  const [isCompact, setIsCompact] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth < 720;
-    }
-    return false;
-  });
+  const [isCompact, setIsCompact] = useState(false);
+  const [prefersReduced, setPrefersReduced] = useState(false);
   const count = items.length;
   const [active, setActive] = useState(Math.min(Math.max(defaultIndex, 0), count - 1));
 
   // Touch swipe tracking
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  // Motion preference listener
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+      setPrefersReduced(mq.matches);
+      const handler = (e: MediaQueryListEvent) => setPrefersReduced(e.matches);
+      mq.addEventListener('change', handler);
+      return () => mq.removeEventListener('change', handler);
+    }
+  }, []);
 
   // ResizeObserver and media query listener for responsive compact mode (< 720px width)
   useEffect(() => {
@@ -108,18 +115,18 @@ export default function AccordionGallery({
     ro.observe(el);
     window.addEventListener('resize', checkWidth);
 
+    const timer = setTimeout(() => {
+      firstRunRef.current = false;
+    }, 150);
+
     return () => {
       ro.disconnect();
       window.removeEventListener('resize', checkWidth);
+      clearTimeout(timer);
     };
   }, []);
 
   const isVertical = orientation === 'vertical' || isCompact;
-
-  const prefersReduced =
-    typeof window !== 'undefined' && window.matchMedia
-      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      : false;
 
   const overlayBg = `linear-gradient(180deg, transparent 15%, rgba(10, 8, 12, 0.4) 55%, rgba(10, 8, 12, 0.92) 100%), color-mix(in srgb, ${overlayColor} calc(var(--ag-dim, 0.3) * 100%), transparent)`;
 
@@ -282,7 +289,6 @@ export default function AccordionGallery({
 
   useEffect(() => {
     applyLayout(!firstRunRef.current);
-    firstRunRef.current = false;
   }, [applyLayout]);
 
   useEffect(
@@ -293,10 +299,14 @@ export default function AccordionGallery({
   );
 
   const handleEnter = (i: number) => {
-    if (trigger === 'hover' && !isCompact) setActive(i);
+    if (trigger === 'hover' && !isCompact) {
+      firstRunRef.current = false;
+      setActive(i);
+    }
   };
 
   const handleCardClick = (i: number) => {
+    firstRunRef.current = false;
     setActive(i);
   };
 
