@@ -18,7 +18,7 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
-  title: "Swati Ajay Kulkarni | Photography Portfolio",
+  title: "Swati Ajay Kulkarni ",
   description: "Creative photography portfolio and management system",
 };
 
