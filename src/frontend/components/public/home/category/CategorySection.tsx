@@ -66,9 +66,9 @@ export default function CategorySection({ categories = [] }: CategorySectionProp
             expandRatio={0.52}
             trigger="hover"
             accentColor="#c2654d"
-            overlayColor="#0a080e"
+            overlayColor=""
             textColor="#ffffff"
-            grayscale
+            // grayscale
             showLabels
             duration={0.6}
             ease="power3.out"

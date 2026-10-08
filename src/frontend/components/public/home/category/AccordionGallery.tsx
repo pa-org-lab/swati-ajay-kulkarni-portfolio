@@ -56,7 +56,7 @@ export default function AccordionGallery({
   items = DEFAULT_ITEMS,
   defaultIndex = 0,
   accentColor = '#c2654d',
-  overlayColor = '#060010',
+  overlayColor = '',
   textColor = '#ffffff',
   height = 520,
   gap = 12,
@@ -70,7 +70,7 @@ export default function AccordionGallery({
   stagger = 0.06,
   trigger = 'hover',
   showLabels = true,
-  grayscale = true,
+  grayscale = false,
   className = ''
 }: AccordionGalleryProps) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -442,7 +442,7 @@ export default function AccordionGallery({
                     <span className="text-[11px] font-mono font-medium tracking-[0.2em] text-[#eddfe2]/70 uppercase">
                       0{i + 1}
                     </span>
-                    <span className="font-serif italic text-lg text-white font-normal drop-shadow-sm">
+                    <span className="font-serif italic text-lg image-text font-normal drop-shadow-sm">
                       {item.label}
                     </span>
                   </div>
@@ -486,7 +486,7 @@ export default function AccordionGallery({
               )}
 
               {/* Category Name in Serif Italic */}
-              <h3 className="font-serif italic text-3xl sm:text-4xl lg:text-[46px] text-white font-normal leading-[1.1] tracking-tight mb-2 sm:mb-3 drop-shadow-md">
+              <h3 className="font-serif italic text-3xl sm:text-4xl lg:text-[46px] image-text  font-normal leading-[1.1] tracking-tight mb-2 sm:mb-3 drop-shadow-md">
                 {item.label}
               </h3>
 

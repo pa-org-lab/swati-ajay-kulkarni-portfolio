@@ -7,3 +7,11 @@
   --font-sans: var(--font-roboto), Roboto, system-ui, sans-serif;
   --font-serif: var(--font-lora), Georgia, serif;
 }
+
+@layer utilities {
+  .image-text {
+    color: #ffffff;
+    -webkit-text-stroke: .6px #000000;
+    paint-order: stroke fill;
+  }
+}
