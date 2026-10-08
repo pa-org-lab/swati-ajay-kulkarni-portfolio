@@ -26,6 +26,7 @@ interface UploadImageModalProps {
   isOpen: boolean;
   categories: CategoryData[];
   defaultCategoryId?: string;
+  defaultAlbumId?: string;
   onClose: () => void;
   onSuccess: (targetCategoryId: string, newImages?: ImageData[]) => void;
 }
@@ -34,6 +35,7 @@ export default function UploadImageModal({
   isOpen,
   categories,
   defaultCategoryId,
+  defaultAlbumId,
   onClose,
   onSuccess,
 }: UploadImageModalProps) {
@@ -174,7 +176,8 @@ export default function UploadImageModal({
 
       const saveRes = await saveUploadedImagesAction(
         selectedCategoryId,
-        uploadedResults
+        uploadedResults,
+        defaultAlbumId
       );
 
       if (saveRes.success) {
@@ -262,7 +265,7 @@ export default function UploadImageModal({
               id="upload-category-select"
               value={selectedCategoryId}
               onChange={(e) => setSelectedCategoryId(e.target.value)}
-              disabled={isUploading}
+              disabled={isUploading || Boolean(defaultAlbumId)}
               className="w-full px-4 py-2.5 bg-[#fbf8f6] border border-[#d4cac2] rounded-xl text-[14px] text-[#2b1f18] outline-none transition-all focus:border-[#a8522e] focus:bg-white focus:ring-2 focus:ring-[#a8522e]/15 cursor-pointer"
             >
               {categories.length === 0 && (
@@ -274,6 +277,11 @@ export default function UploadImageModal({
                 </option>
               ))}
             </select>
+            {defaultAlbumId && (
+              <p className="mt-1.5 text-[11.5px] text-[#a89488]">
+                Uploading into the selected album.
+              </p>
+            )}
           </div>
 
           {/* Drag & Drop File Zone */}

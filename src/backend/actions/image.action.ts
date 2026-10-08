@@ -11,6 +11,7 @@ export interface ImageData {
   title: string;
   url: string;
   categoryId: string;
+  albumId?: string | null;
   position: number;
   description?: string;
   createdAt?: string;
@@ -32,6 +33,7 @@ function formatImage(img: Images | Record<string, unknown>): ImageData {
     title: typeof record.title === "string" ? record.title : "",
     url: getPublicImageUrl(typeof record.url === "string" ? record.url : ""),
     categoryId: String(record.categoryId),
+    albumId: record.albumId ? String(record.albumId) : null,
     position: typeof record.position === "number" ? record.position : 0,
     description:
       typeof record.description === "string" ? record.description : "",
@@ -52,6 +54,7 @@ export async function getImagesByCategoryAction(
   categoryId: string,
   page: number = 1,
   limit: number = 12,
+  albumId?: string | null,
 ) {
   try {
     if (!categoryId)
@@ -60,15 +63,16 @@ export async function getImagesByCategoryAction(
     const pageNum = Math.max(1, Number(page) || 1);
     const limitNum = Math.max(1, Number(limit) || 12);
     const skip = (pageNum - 1) * limitNum;
+    const filter = { categoryId, albumId: albumId || null };
 
     await dbConnect();
     const [images, total] = await Promise.all([
-      Image.find({ categoryId })
+      Image.find(filter)
         .sort({ position: 1, _id: 1 })
         .skip(skip)
         .limit(limitNum)
         .lean(),
-      Image.countDocuments({ categoryId }),
+      Image.countDocuments(filter),
     ]);
 
     const totalPages = Math.ceil(total / limitNum);
@@ -98,6 +102,7 @@ export async function getImagesByCategoryAction(
 export async function saveUploadedImagesAction(
   categoryId: string,
   imagesToSave: { url: string; title?: string; description?: string }[],
+  albumId?: string | null,
 ) {
   try {
     if (!categoryId || !imagesToSave?.length) {
@@ -109,7 +114,7 @@ export async function saveUploadedImagesAction(
     // const category = await ImageCategory.findById(categoryId).select("_id");
     // if (!category) return { success: false, error: "Category not found" };
 
-    const lastImage = await Image.findOne({ categoryId })
+    const lastImage = await Image.findOne({ categoryId, albumId: albumId || null })
       .sort({ position: -1 })
       .select("position")
       .lean();
@@ -117,6 +122,7 @@ export async function saveUploadedImagesAction(
 
     const docs = imagesToSave.map((img, index) => ({
       categoryId,
+      albumId: albumId || null,
       url: img.url,
       title: img.title?.trim() || "",
       description: img.description?.trim() || "",
@@ -175,7 +181,8 @@ export async function updateImageAction(
 // Reorder images within a category
 export async function reorderImagesAction(
   categoryId: string,
-  orderedIds: string[]
+  orderedIds: string[],
+  albumId?: string | null
 ) {
   try {
     if (!categoryId || !orderedIds?.length) return { success: true };
@@ -185,7 +192,7 @@ export async function reorderImagesAction(
     await Image.bulkWrite(
       orderedIds.map((id, index) => ({
         updateOne: {
-          filter: { _id: id, categoryId },
+          filter: { _id: id, categoryId, albumId: albumId || null },
           update: { $set: { position: index } },
         },
       }))
@@ -239,6 +246,7 @@ export async function getPublicGalleryImagesAction(filter?: {
     await dbConnect();
 
     const pipeline: mongoose.PipelineStage[] = [
+      { $match: { albumId: null } },
       {
         $lookup: {
           from: "imagecategories",

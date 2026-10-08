@@ -6,12 +6,18 @@ import toast from "react-hot-toast";
 import {
   FiArrowLeft,
   FiEdit2,
+  FiFolderPlus,
   FiImage,
   FiMove,
   FiRotateCw,
   FiTrash2,
   FiUpload,
 } from "react-icons/fi";
+import {
+  type AlbumData,
+  deleteAlbumAction,
+  getAlbumsByCategoryAction,
+} from "@/backend/actions/album.action";
 import type { CategoryData } from "@/backend/actions/category.action";
 import {
   deleteImageAction,
@@ -23,12 +29,14 @@ import ConfirmationModal from "@/frontend/components/admin/common/ConfirmationMo
 import ImageGridSkeleton, {
   ImageCardSkeleton,
 } from "@/frontend/components/admin/common/ImageCardSkeleton";
+import AlbumCard from "./AlbumCard";
+import AlbumModal from "./AlbumModal";
 import EditImageModal from "./EditImageModal";
 
 interface CategoryDetailViewProps {
   category: CategoryData;
   onBack: () => void;
-  onUploadClick: (categoryId: string) => void;
+  onUploadClick: (categoryId: string, albumId?: string | null) => void;
   onEditCategory: (category: CategoryData) => void;
   onDeleteCategory: (categoryId: string) => void;
   refreshTrigger?: number;
@@ -51,6 +59,14 @@ export default function CategoryDetailView({
   refreshTrigger,
   onImagesChange,
 }: CategoryDetailViewProps) {
+  const [albums, setAlbums] = useState<AlbumData[]>([]);
+  const [activeAlbum, setActiveAlbum] = useState<AlbumData | null>(null);
+  const [albumModal, setAlbumModal] = useState<{
+    isOpen: boolean;
+    album: AlbumData | null;
+  }>({ isOpen: false, album: null });
+  const [albumToDelete, setAlbumToDelete] = useState<AlbumData | null>(null);
+  const [isDeletingAlbum, setIsDeletingAlbum] = useState(false);
   const [images, setImages] = useState<ImageData[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -69,7 +85,12 @@ export default function CategoryDetailView({
   const loadInitialImages = useCallback(async () => {
     setIsLoadingInitial(true);
     try {
-      const res = await getImagesByCategoryAction(category._id, 1, 12);
+      const res = await getImagesByCategoryAction(
+        category._id,
+        1,
+        12,
+        activeAlbum?._id,
+      );
       if (res.success && res.images) {
         setImages(res.images);
         setPage(1);
@@ -86,7 +107,7 @@ export default function CategoryDetailView({
     } finally {
       setIsLoadingInitial(false);
     }
-  }, [category._id]);
+  }, [category._id, activeAlbum?._id]);
 
   // Fetch next page of 12 images for infinite scroll
   const loadMoreImages = useCallback(async () => {
@@ -95,7 +116,12 @@ export default function CategoryDetailView({
     const nextPage = page + 1;
 
     try {
-      const res = await getImagesByCategoryAction(category._id, nextPage, 12);
+      const res = await getImagesByCategoryAction(
+        category._id,
+        nextPage,
+        12,
+        activeAlbum?._id,
+      );
       if (res.success && res.images) {
         setImages((prev) => {
           const existingIds = new Set(prev.map((img) => img._id));
@@ -118,11 +144,33 @@ export default function CategoryDetailView({
     } finally {
       setIsLoadingMore(false);
     }
-  }, [category._id, page, hasMore, isLoadingMore, isLoadingInitial]);
+  }, [
+    category._id,
+    activeAlbum?._id,
+    page,
+    hasMore,
+    isLoadingMore,
+    isLoadingInitial,
+  ]);
+
+  // Albums are the optional folder layer sitting between category and images
+  const loadAlbums = useCallback(async () => {
+    const res = await getAlbumsByCategoryAction(category._id);
+    if (res.success) {
+      setAlbums(res.albums);
+      setActiveAlbum((current) =>
+        current ? res.albums.find((a) => a._id === current._id) || null : null,
+      );
+    }
+  }, [category._id]);
 
   useEffect(() => {
     loadInitialImages();
   }, [loadInitialImages, refreshTrigger]);
+
+  useEffect(() => {
+    loadAlbums();
+  }, [loadAlbums, refreshTrigger]);
 
   // Setup IntersectionObserver for infinite scrolling
   useEffect(() => {
@@ -197,7 +245,11 @@ export default function CategoryDetailView({
     const toastId = toast.loading("Saving image order...");
 
     try {
-      const res = await reorderImagesAction(category._id, orderedIds);
+      const res = await reorderImagesAction(
+        category._id,
+        orderedIds,
+        activeAlbum?._id,
+      );
       if (res.success) {
         toast.success("Image order updated!", { id: toastId });
         onImagesChange?.();
@@ -238,6 +290,41 @@ export default function CategoryDetailView({
     }
   };
 
+  const handleConfirmDeleteAlbum = async () => {
+    if (!albumToDelete) return;
+
+    const toastId = toast.loading("Deleting album...");
+    setIsDeletingAlbum(true);
+
+    try {
+      const res = await deleteAlbumAction(albumToDelete._id);
+      if (res.success) {
+        toast.success(`Album "${albumToDelete.name}" deleted`, { id: toastId });
+        setAlbums((prev) => prev.filter((a) => a._id !== albumToDelete._id));
+        if (activeAlbum?._id === albumToDelete._id) setActiveAlbum(null);
+        setAlbumToDelete(null);
+        onImagesChange?.();
+      } else {
+        toast.error(res.error || "Failed to delete album", { id: toastId });
+      }
+    } catch (error) {
+      console.error("Failed to delete album:", error);
+      toast.error("Failed to delete album", { id: toastId });
+    } finally {
+      setIsDeletingAlbum(false);
+    }
+  };
+
+  const handleAlbumSaved = (saved: AlbumData) => {
+    setAlbums((prev) => {
+      const exists = prev.some((a) => a._id === saved._id);
+      return exists
+        ? prev.map((a) => (a._id === saved._id ? saved : a))
+        : [...prev, saved];
+    });
+    if (activeAlbum?._id === saved._id) setActiveAlbum(saved);
+  };
+
   const handleImageUpdateSuccess = (updatedImage: ImageData) => {
     setImages((prev) =>
       prev.map((img) => (img._id === updatedImage._id ? updatedImage : img)),
@@ -251,11 +338,11 @@ export default function CategoryDetailView({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <button
           type="button"
-          onClick={onBack}
+          onClick={() => (activeAlbum ? setActiveAlbum(null) : onBack())}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#d4cac2] bg-white text-[#6b5a50] text-[13px] font-medium hover:border-[#a8522e] hover:text-[#a8522e] hover:bg-[#fbf5f2] transition-colors cursor-pointer"
         >
           <FiArrowLeft className="text-sm" />
-          <span>Back to Categories</span>
+          <span>Back to {activeAlbum ? category.name : "Categories"}</span>
         </button>
 
         <div className="flex items-center gap-2.5 self-end sm:self-auto">
@@ -275,9 +362,23 @@ export default function CategoryDetailView({
             />
             <span>Reload</span>
           </button>
+          {!activeAlbum && (
+            <button
+              type="button"
+              onClick={() => setAlbumModal({ isOpen: true, album: null })}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#d4cac2] bg-white text-[#6b5a50] text-[12.5px] font-medium hover:border-[#a8522e] hover:text-[#a8522e] hover:bg-[#fbf5f2] transition-colors cursor-pointer"
+            >
+              <FiFolderPlus className="text-xs" />
+              <span>New Album</span>
+            </button>
+          )}
           <button
             type="button"
-            onClick={() => onEditCategory(category)}
+            onClick={() =>
+              activeAlbum
+                ? setAlbumModal({ isOpen: true, album: activeAlbum })
+                : onEditCategory(category)
+            }
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#d4cac2] bg-white text-[#6b5a50] text-[12.5px] font-medium hover:text-[#2b1f18] hover:bg-[#f6f2f0] transition-colors cursor-pointer"
           >
             <FiEdit2 className="text-xs" />
@@ -285,7 +386,11 @@ export default function CategoryDetailView({
           </button>
           <button
             type="button"
-            onClick={() => onDeleteCategory(category._id)}
+            onClick={() =>
+              activeAlbum
+                ? setAlbumToDelete(activeAlbum)
+                : onDeleteCategory(category._id)
+            }
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-red-200 bg-white text-red-600 text-[12.5px] font-medium hover:bg-red-50 transition-colors cursor-pointer"
           >
             <FiTrash2 className="text-xs" />
@@ -293,7 +398,7 @@ export default function CategoryDetailView({
           </button>
           <button
             type="button"
-            onClick={() => onUploadClick(category._id)}
+            onClick={() => onUploadClick(category._id, activeAlbum?._id)}
             className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#a8522e] text-white text-[13px] font-semibold uppercase tracking-wide hover:bg-[#8e4325] transition-colors shadow-[0_2px_8px_rgba(168,82,46,0.3)] cursor-pointer"
           >
             <FiUpload className="text-sm" />
@@ -302,11 +407,16 @@ export default function CategoryDetailView({
         </div>
       </div>
 
-      {/* Category Info Header */}
+      {/* Category / Album Info Header */}
       <div className="mb-8">
+        {activeAlbum && (
+          <p className="text-[11px] uppercase tracking-[0.12em] text-[#a89488] font-semibold mb-1.5">
+            {category.name} / Album
+          </p>
+        )}
         <div className="flex items-center gap-3">
           <h1 className="text-[32px] font-bold text-[#2b1f18] tracking-tight">
-            {category.name}
+            {activeAlbum ? activeAlbum.name : category.name}
           </h1>
           <span className="px-3 py-1 rounded-full bg-[#ece4e0] text-[#a8522e] text-[12px] font-semibold uppercase tracking-wider">
             {totalCount} {totalCount === 1 ? "Image" : "Images"}
@@ -318,25 +428,52 @@ export default function CategoryDetailView({
         </p>
       </div>
 
+      {/* Albums - the optional folder layer, shown at category level only */}
+      {!activeAlbum && albums.length > 0 && (
+        <>
+          <h2 className="text-[10px] uppercase tracking-[0.13em] text-[#a89488] font-semibold mb-4">
+            Albums : {albums.length}
+          </h2>
+          <div
+            className="grid gap-5 mb-10"
+            style={{
+              gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))",
+            }}
+          >
+            {albums.map((album) => (
+              <AlbumCard
+                key={album._id}
+                album={album}
+                onOpen={setActiveAlbum}
+                onEdit={(a) => setAlbumModal({ isOpen: true, album: a })}
+                onDelete={setAlbumToDelete}
+              />
+            ))}
+          </div>
+          <h2 className="text-[10px] uppercase tracking-[0.13em] text-[#a89488] font-semibold mb-4">
+            Images : {totalCount}
+          </h2>
+        </>
+      )}
+
       {/* Initial Loading Skeleton State */}
       {isLoadingInitial ? (
         <ImageGridSkeleton count={12} />
-      ) : images.length === 0 ? (
+      ) : images.length === 0 && (activeAlbum || albums.length === 0) ? (
         /* Empty State */
         <div className="flex flex-col items-center justify-center py-20 px-4 text-center border-2 border-dashed border-[#e2d9d2] rounded-2xl bg-white/60">
           <div className="w-14 h-14 rounded-full bg-[#ece4e0] text-[#a8522e] flex items-center justify-center mb-3">
             <FiImage className="text-2xl" />
           </div>
           <h3 className="text-[16px] font-bold text-[#2b1f18]">
-            No images in this category yet
+            No images here yet
           </h3>
           <p className="text-[13px] text-[#a89488] mt-1 max-w-sm">
-            Upload your first photos to begin showcasing work in {category.name}
-            .
+            Upload your first photos to {activeAlbum?.name || category.name}.
           </p>
           <button
             type="button"
-            onClick={() => onUploadClick(category._id)}
+            onClick={() => onUploadClick(category._id, activeAlbum?._id)}
             className="mt-5 inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#a8522e] text-white text-[13px] font-semibold hover:bg-[#8e4325] transition-colors shadow-md cursor-pointer"
           >
             <FiUpload className="text-sm" />
@@ -459,6 +596,36 @@ export default function CategoryDetailView({
           />
         </>
       )}
+
+      {/* Create / Edit Album Modal */}
+      <AlbumModal
+        isOpen={albumModal.isOpen}
+        categoryId={category._id}
+        album={albumModal.album}
+        onClose={() => setAlbumModal({ isOpen: false, album: null })}
+        onSuccess={handleAlbumSaved}
+      />
+
+      {/* Delete Album Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={Boolean(albumToDelete)}
+        onClose={() => setAlbumToDelete(null)}
+        onConfirm={handleConfirmDeleteAlbum}
+        isLoading={isDeletingAlbum}
+        title="Delete Album"
+        message={
+          <span>
+            Are you sure you want to delete{" "}
+            <strong className="text-[#2b1f18]">
+              &quot;{albumToDelete?.name}&quot;
+            </strong>{" "}
+            and all images inside it? This action cannot be undone.
+          </span>
+        }
+        confirmText="Delete Album"
+        cancelText="Cancel"
+        variant="danger"
+      />
 
       {/* Edit Image Modal */}
       <EditImageModal

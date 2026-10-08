@@ -4,6 +4,7 @@ export interface Images extends Document {
   title: string;
   url: string;
   categoryId: mongoose.Types.ObjectId;
+  albumId?: mongoose.Types.ObjectId | null;
   position: number;
   description: string;
 
@@ -26,6 +27,11 @@ const ImageSchema = new Schema<Images>(
       ref: "ImageCategory",
       required: true,
     },
+    albumId: {
+      type: Schema.Types.ObjectId,
+      ref: "ImageAlbum",
+      default: null,
+    },
     position: {
       type: Number,
       required: true,
@@ -41,5 +47,6 @@ const ImageSchema = new Schema<Images>(
 
 
 ImageSchema.index({ categoryId: 1, position: 1 });
+ImageSchema.index({ albumId: 1, position: 1 });
 
 export const Image: Model<Images> = mongoose.models.Image || mongoose.model<Images>("Image", ImageSchema);

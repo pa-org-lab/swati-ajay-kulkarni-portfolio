@@ -41,6 +41,9 @@ export default function AdminGallerySection() {
   const [uploadTargetCategoryId, setUploadTargetCategoryId] = useState<
     string | undefined
   >(undefined);
+  const [uploadTargetAlbumId, setUploadTargetAlbumId] = useState<
+    string | undefined
+  >(undefined);
   const [imagesRefreshKey, setImagesRefreshKey] = useState(0);
 
   // Fetch categories from DB
@@ -170,8 +173,9 @@ export default function AdminGallerySection() {
   };
 
   // Open upload modal
-  const handleOpenUpload = (categoryId?: string) => {
+  const handleOpenUpload = (categoryId?: string, albumId?: string | null) => {
     setUploadTargetCategoryId(categoryId || categories[0]?._id);
+    setUploadTargetAlbumId(albumId || undefined);
     setIsUploadModalOpen(true);
   };
 
@@ -207,7 +211,7 @@ export default function AdminGallerySection() {
           category={selectedCategory}
           refreshTrigger={imagesRefreshKey}
           onBack={() => setSelectedCategory(null)}
-          onUploadClick={(catId) => handleOpenUpload(catId)}
+          onUploadClick={(catId, albumId) => handleOpenUpload(catId, albumId)}
           onEditCategory={(cat) => setEditingCategory(cat)}
           onDeleteCategory={(catId) => handleDeleteCategory(catId)}
           onImagesChange={loadCategories}
@@ -259,6 +263,7 @@ export default function AdminGallerySection() {
         isOpen={isUploadModalOpen}
         categories={categories}
         defaultCategoryId={uploadTargetCategoryId}
+        defaultAlbumId={uploadTargetAlbumId}
         onClose={() => setIsUploadModalOpen(false)}
         onSuccess={handleUploadSuccess}
       />

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import type { PublicAlbumData } from "@/backend/actions/album.action";
 import type { CategoryData } from "@/backend/actions/category.action";
 import type { PublicGalleryImageItem } from "@/backend/actions/image.action";
 import GalleryHeader from "./GalleryHeader";
@@ -12,15 +13,18 @@ import GalleryFilterBar, {
 } from "./GalleryFilterBar";
 import GalleryGrid from "./GalleryGrid";
 import GalleryLightbox from "./GalleryLightbox";
+import AlbumFolderGrid from "./AlbumFolderGrid";
 
 interface GallerySectionProps {
   categories?: CategoryData[];
   images?: PublicGalleryImageItem[];
+  albums?: PublicAlbumData[];
 }
 
 export default function GallerySection({
   categories = [],
   images = [],
+  albums = [],
 }: GallerySectionProps) {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get("category") || "all";
@@ -120,6 +124,17 @@ export default function GallerySection({
   }, [images, activeCategory, searchQuery, activeSort]);
 
 
+  // Albums follow the active category filter
+  const filteredAlbums = useMemo<PublicAlbumData[]>(() => {
+    if (!activeCategory || activeCategory === "all") return albums;
+    const active = activeCategory.toLowerCase();
+    return albums.filter(
+      (album) =>
+        album.categorySlug.toLowerCase() === active ||
+        album.categoryName.toLowerCase() === active
+    );
+  }, [albums, activeCategory]);
+
   return (
     <section
       id="gallery-archive"
@@ -143,7 +158,10 @@ export default function GallerySection({
           onSearchChange={(q) => setSearchQuery(q)}
         />
 
-        {/* 3. Clean Responsive Gallery Grid (Zero Muddy Overlays or Dark Shadows) */}
+        {/* 3. Albums - folders opening on their own route */}
+        <AlbumFolderGrid albums={filteredAlbums} />
+
+        {/* 4. Clean Responsive Gallery Grid (Zero Muddy Overlays or Dark Shadows) */}
         <GalleryGrid
           images={filteredImages}
           isLoading={false}
@@ -151,7 +169,7 @@ export default function GallerySection({
           onImageClick={(index) => setLightboxIndex(index)}
         />
 
-        {/* 4. Interactive Minimalist Lightbox Modal */}
+        {/* 5. Interactive Minimalist Lightbox Modal */}
         <GalleryLightbox
           images={filteredImages}
           selectedIndex={lightboxIndex}
