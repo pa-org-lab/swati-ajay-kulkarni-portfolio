@@ -182,17 +182,6 @@ export default function GalleryFilterBar({
                   <div className="inline-flex rounded-full border border-stone-200/90 p-1 bg-stone-50/70">
                     <button
                       type="button"
-                      onClick={() => onSelectLayout("drift")}
-                      className={`px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-[11px] tracking-[0.18em] font-medium uppercase transition-colors cursor-pointer ${
-                        activeLayout === "drift"
-                          ? "bg-stone-900 text-white font-semibold"
-                          : "text-stone-600 hover:text-stone-900"
-                      }`}
-                    >
-                      DRIFT 3D
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => onSelectLayout("masonry")}
                       className={`px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-[11px] tracking-[0.18em] font-medium uppercase transition-colors cursor-pointer ${
                         activeLayout === "masonry"
@@ -212,6 +201,17 @@ export default function GalleryFilterBar({
                       }`}
                     >
                       GRID
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onSelectLayout("drift")}
+                      className={`px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-[11px] tracking-[0.18em] font-medium uppercase transition-colors cursor-pointer ${
+                        activeLayout === "drift"
+                          ? "bg-stone-900 text-white font-semibold"
+                          : "text-stone-600 hover:text-stone-900"
+                      }`}
+                    >
+                      DRIFT 3D
                     </button>
                   </div>
 

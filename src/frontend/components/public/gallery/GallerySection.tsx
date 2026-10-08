@@ -29,18 +29,28 @@ export default function GallerySection({
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get("category") || "all";
 
+  const paramLayout = searchParams.get("layout");
+  const initialLayout: GalleryLayoutOption =
+    paramLayout === "drift" || paramLayout === "grid" || paramLayout === "masonry"
+      ? paramLayout
+      : "masonry";
+
   const [activeCategory, setActiveCategory] = useState<string>(initialCategory);
   const [activeSort, setActiveSort] = useState<GallerySortOption>("curated");
-  const [activeLayout, setActiveLayout] = useState<GalleryLayoutOption>("drift");
+  const [activeLayout, setActiveLayout] = useState<GalleryLayoutOption>(initialLayout);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  // Synchronize category if query parameter updates
+  // Synchronize category or layout if query parameter updates
   useEffect(() => {
-    const paramCategory = searchParams.get("category");
-    if (paramCategory) {
-      setActiveCategory(paramCategory.toLowerCase());
+    const pCategory = searchParams.get("category");
+    if (pCategory) {
+      setActiveCategory(pCategory.toLowerCase());
+    }
+    const pLayout = searchParams.get("layout");
+    if (pLayout === "drift" || pLayout === "grid" || pLayout === "masonry") {
+      setActiveLayout(pLayout);
     }
   }, [searchParams]);
 
