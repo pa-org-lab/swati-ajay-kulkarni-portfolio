@@ -13,7 +13,7 @@ export default function AlbumFolderGrid({ albums }: AlbumFolderGridProps) {
   if (albums.length === 0) return null;
 
   return (
-    <section aria-label="Albums" className="w-full mb-10 sm:mb-14">
+    <section aria-label="Albums" className="w-full mb-6 sm:mb-10">
       <div className="flex items-center gap-4 mb-5 sm:mb-6 select-none">
         <span className="text-[10px] sm:text-[11px] font-sans font-semibold tracking-[0.28em] uppercase text-stone-500">
           Albums
@@ -77,6 +77,12 @@ export default function AlbumFolderGrid({ albums }: AlbumFolderGridProps) {
             </Link>
           </motion.div>
         ))}
+      </div>
+      <div className="flex items-center gap-4 mt-10 select-none">
+        <span className="text-[10px] sm:text-[11px] font-sans font-semibold tracking-[0.28em] uppercase text-stone-500">
+          Images
+        </span>
+        <div className="flex-1 h-[1px] bg-stone-300/80" />
       </div>
     </section>
   );
