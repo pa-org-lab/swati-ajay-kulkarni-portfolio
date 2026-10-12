@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "motion/react";
 import { FiMaximize2 } from "react-icons/fi";
 import type { PublicGalleryImageItem } from "@/backend/actions/image.action";
 import DriftWall, { type DriftWallItem } from "./DriftGallery";
@@ -97,15 +96,8 @@ export default function GalleryGrid({
     return (
       <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 sm:gap-8">
         {images.map((item, index) => (
-          <motion.div
+          <div
             key={item._id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.5,
-              delay: Math.min(index * 0.04, 0.4),
-              ease: [0.22, 1, 0.36, 1],
-            }}
             className="break-inside-avoid inline-block w-full mb-6 sm:mb-8 group relative rounded-2xl overflow-hidden bg-stone-100 border border-stone-200/70 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.09)] transition-all duration-500 cursor-pointer"
             onClick={() => onImageClick(index)}
             tabIndex={0}
@@ -153,7 +145,7 @@ export default function GalleryGrid({
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
     );
@@ -163,15 +155,8 @@ export default function GalleryGrid({
   return (
     <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
       {images.map((item, index) => (
-        <motion.div
+        <div
           key={item._id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            duration: 0.5,
-            delay: Math.min(index * 0.04, 0.4),
-            ease: [0.22, 1, 0.36, 1],
-          }}
           className="group relative aspect-[4/5] rounded-2xl overflow-hidden bg-stone-100 border border-stone-200/70 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.09)] transition-all duration-500 cursor-pointer"
           onClick={() => onImageClick(index)}
           tabIndex={0}
@@ -214,7 +199,7 @@ export default function GalleryGrid({
               )}
             </div>
           </div>
-        </motion.div>
+        </div>
       ))}
     </div>
   );

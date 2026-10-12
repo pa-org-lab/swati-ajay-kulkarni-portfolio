@@ -69,8 +69,8 @@ export default function GalleryFilterBar({
                       className="absolute inset-0 rounded-full bg-[#a48879] shadow-xs -z-10"
                       transition={{
                         type: "spring",
-                        stiffness: 420,
-                        damping: 32,
+                        stiffness: 340,
+                        damping: 30,
                       }}
                     />
                   )}
@@ -115,10 +115,10 @@ export default function GalleryFilterBar({
       <AnimatePresence>
         {filterDrawerOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0, y: -10 }}
+            initial={{ opacity: 0, height: 0, y: -8 }}
             animate={{ opacity: 1, height: "auto", y: 0 }}
-            exit={{ opacity: 0, height: 0, y: -10 }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            exit={{ opacity: 0, height: 0, y: -8 }}
+            transition={{ duration: 0.32, ease: [0.25, 1, 0.5, 1] }}
             className="overflow-hidden mt-4"
           >
             <div className="p-4 sm:p-6 rounded-2xl border border-stone-200/80 bg-white/85 backdrop-blur-md shadow-sm">
@@ -157,20 +157,34 @@ export default function GalleryFilterBar({
                         { label: "OLDEST", val: "oldest" },
                         { label: "TITLE A-Z", val: "title" },
                       ] as const
-                    ).map((sort) => (
-                      <button
-                        key={sort.val}
-                        type="button"
-                        onClick={() => onSelectSort(sort.val)}
-                        className={`px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-[11px] tracking-[0.18em] font-medium uppercase transition-colors cursor-pointer ${
-                          activeSort === sort.val
-                            ? "bg-stone-900 text-white font-semibold"
-                            : "text-stone-600 hover:text-stone-900"
-                        }`}
-                      >
-                        {sort.label}
-                      </button>
-                    ))}
+                    ).map((sort) => {
+                      const isSortActive = activeSort === sort.val;
+                      return (
+                        <button
+                          key={sort.val}
+                          type="button"
+                          onClick={() => onSelectSort(sort.val)}
+                          className={`relative px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-[11px] tracking-[0.18em] font-medium uppercase transition-colors duration-200 cursor-pointer ${
+                            isSortActive
+                              ? "text-white font-semibold"
+                              : "text-stone-600 hover:text-stone-900"
+                          }`}
+                        >
+                          {isSortActive && (
+                            <motion.span
+                              layoutId="activeSortPill"
+                              className="absolute inset-0 rounded-full bg-stone-900 shadow-xs -z-10"
+                              transition={{
+                                type: "spring",
+                                stiffness: 340,
+                                damping: 30,
+                              }}
+                            />
+                          )}
+                          <span>{sort.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -180,41 +194,41 @@ export default function GalleryFilterBar({
                     VIEW:
                   </span>
                   <div className="inline-flex rounded-full border border-stone-200/90 p-1 bg-stone-50/70">
-                    <button
-                      type="button"
-                      onClick={() => onSelectLayout("masonry")}
-                      className={`px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-[11px] tracking-[0.18em] font-medium uppercase transition-colors cursor-pointer ${
-                        activeLayout === "masonry"
-                          ? "bg-stone-900 text-white font-semibold"
-                          : "text-stone-600 hover:text-stone-900"
-                      }`}
-                    >
-                      MASONRY
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onSelectLayout("grid")}
-                      className={`px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-[11px] tracking-[0.18em] font-medium uppercase transition-colors cursor-pointer ${
-                        activeLayout === "grid"
-                          ? "bg-stone-900 text-white font-semibold"
-                          : "text-stone-600 hover:text-stone-900"
-                      }`}
-                    >
-                      GRID
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onSelectLayout("drift")}
-                      className={`px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-[11px] tracking-[0.18em] font-medium uppercase transition-colors cursor-pointer ${
-                        activeLayout === "drift"
-                          ? "bg-stone-900 text-white font-semibold"
-                          : "text-stone-600 hover:text-stone-900"
-                      }`}
-                    >
-                      DRIFT 3D
-                    </button>
+                    {(
+                      [
+                        { label: "MASONRY", val: "masonry" },
+                        { label: "GRID", val: "grid" },
+                        { label: "DRIFT 3D", val: "drift" },
+                      ] as const
+                    ).map((layout) => {
+                      const isLayoutActive = activeLayout === layout.val;
+                      return (
+                        <button
+                          key={layout.val}
+                          type="button"
+                          onClick={() => onSelectLayout(layout.val)}
+                          className={`relative px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-[11px] tracking-[0.18em] font-medium uppercase transition-colors duration-200 cursor-pointer ${
+                            isLayoutActive
+                              ? "text-white font-semibold"
+                              : "text-stone-600 hover:text-stone-900"
+                          }`}
+                        >
+                          {isLayoutActive && (
+                            <motion.span
+                              layoutId="activeLayoutPill"
+                              className="absolute inset-0 rounded-full bg-stone-900 shadow-xs -z-10"
+                              transition={{
+                                type: "spring",
+                                stiffness: 340,
+                                damping: 30,
+                              }}
+                            />
+                          )}
+                          <span>{layout.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
-
                 </div>
               </div>
             </div>

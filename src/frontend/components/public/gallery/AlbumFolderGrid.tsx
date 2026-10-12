@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "motion/react";
 import Link from "next/link";
 import { FiArrowUpRight, FiFolder } from "react-icons/fi";
 import type { PublicAlbumData } from "@/backend/actions/album.action";
@@ -26,16 +25,9 @@ export default function AlbumFolderGrid({
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-7">
-        {albums.map((album, index) => (
-          <motion.div
+        {albums.map((album) => (
+          <div
             key={album._id}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.5,
-              delay: Math.min(index * 0.04, 0.3),
-              ease: [0.22, 1, 0.36, 1],
-            }}
             className="relative pt-2.5"
           >
             {/* Offset sheet behind the card marks a folder apart from a photo */}
@@ -85,7 +77,7 @@ export default function AlbumFolderGrid({
                 <FiArrowUpRight className="w-4 h-4 shrink-0 text-stone-400 group-hover:text-[#c2654d] transition-colors duration-300" />
               </div>
             </Link>
-          </motion.div>
+          </div>
         ))}
       </div>
       <div className="flex items-center gap-4 mt-10 select-none">
