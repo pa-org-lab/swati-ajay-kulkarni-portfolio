@@ -1,17 +1,14 @@
-import { notFound } from "next/navigation";
-import { getPublicAlbumBySlugAction } from "@/backend/actions/album.action";
+import type { PublicAlbumDetail } from "@/backend/actions/album.action";
 import AlbumView from "@/frontend/components/public/gallery/AlbumView";
 
-export default async function AlbumPage({ slug }: { slug: string }) {
-  const res = await getPublicAlbumBySlugAction(slug);
+interface AlbumPageProps {
+  album: PublicAlbumDetail;
+}
 
-  if (!res.success || !res.album) {
-    notFound();
-  }
-
+export default function AlbumPage({ album }: AlbumPageProps) {
   return (
     <main className="w-full">
-      <AlbumView album={res.album} />
+      <AlbumView album={album} />
     </main>
   );
 }
