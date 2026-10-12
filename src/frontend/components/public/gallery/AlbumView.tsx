@@ -297,13 +297,13 @@ export default function AlbumView({ album, onClose }: AlbumViewProps) {
             role="dialog"
             aria-modal="true"
             aria-label={current.title || album.name}
-            className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-8 bg-stone-950/94 backdrop-blur-md cursor-zoom-out"
+            className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-8 bg-white/30 backdrop-blur-xl cursor-zoom-out select-none"
           >
             <button
               type="button"
               onClick={() => setIsZoomed(false)}
               aria-label="Close zoom preview"
-              className="absolute top-5 right-5 sm:top-8 sm:right-8 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white flex items-center justify-center transition-colors cursor-pointer"
+              className="absolute top-5 right-5 sm:top-8 sm:right-8 w-11 h-11 rounded-full bg-white/65 hover:bg-white/85 border border-white/70 text-stone-700 hover:text-stone-900 shadow-[0_8px_32px_0_rgba(31,38,135,0.06)] flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-xl"
             >
               <FiX className="w-5 h-5" />
             </button>
@@ -315,7 +315,7 @@ export default function AlbumView({ album, onClose }: AlbumViewProps) {
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
               src={current.url}
               alt={current.title || album.name}
-              className="max-w-[95vw] max-h-[92vh] object-contain rounded-lg shadow-2xl"
+              className="max-w-[95vw] max-h-[92vh] object-contain rounded-xl sm:rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.18)] border border-white/80 ring-1 ring-black/5 select-none"
               draggable={false}
             />
           </motion.div>
