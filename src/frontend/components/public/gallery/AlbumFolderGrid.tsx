@@ -45,7 +45,7 @@ export default function AlbumFolderGrid({
             />
 
             <Link
-              href={`/gallery/${album.slug}`}
+              href={`/gallery?album=${album.slug}`}
               onClick={(e) => {
                 if (onSelectAlbum) {
                   e.preventDefault();
