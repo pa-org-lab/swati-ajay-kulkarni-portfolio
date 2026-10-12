@@ -12,6 +12,7 @@ export default async function ({
 
   if (!res.success || !res.album) {
     notFound();
+    console.log("res", res, "this is coming due to data being not loaded in page ")
   }
 
   return <AlbumPage album={res.album} />;
