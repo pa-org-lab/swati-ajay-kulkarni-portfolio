@@ -7,9 +7,13 @@ import type { PublicAlbumData } from "@/backend/actions/album.action";
 
 interface AlbumFolderGridProps {
   albums: PublicAlbumData[];
+  onSelectAlbum?: (album: PublicAlbumData) => void;
 }
 
-export default function AlbumFolderGrid({ albums }: AlbumFolderGridProps) {
+export default function AlbumFolderGrid({
+  albums,
+  onSelectAlbum,
+}: AlbumFolderGridProps) {
   if (albums.length === 0) return null;
 
   return (
@@ -42,6 +46,12 @@ export default function AlbumFolderGrid({ albums }: AlbumFolderGridProps) {
 
             <Link
               href={`/gallery/${album.slug}`}
+              onClick={(e) => {
+                if (onSelectAlbum) {
+                  e.preventDefault();
+                  onSelectAlbum(album);
+                }
+              }}
               className="group relative block rounded-2xl overflow-hidden bg-white border border-stone-200/80 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.09)] transition-all duration-500"
             >
               <div className="relative aspect-[4/3] overflow-hidden bg-stone-100 flex items-center justify-center">

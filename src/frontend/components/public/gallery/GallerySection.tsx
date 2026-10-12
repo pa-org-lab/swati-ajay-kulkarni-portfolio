@@ -1,8 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import type { PublicAlbumData } from "@/backend/actions/album.action";
+import { AnimatePresence, motion } from "motion/react";
+import {
+  getPublicAlbumBySlugAction,
+  type PublicAlbumData,
+  type PublicAlbumDetail,
+} from "@/backend/actions/album.action";
 import type { CategoryData } from "@/backend/actions/category.action";
 import type { PublicGalleryImageItem } from "@/backend/actions/image.action";
 import GalleryHeader from "./GalleryHeader";
@@ -14,6 +19,8 @@ import GalleryFilterBar, {
 import GalleryGrid from "./GalleryGrid";
 import GalleryLightbox from "./GalleryLightbox";
 import AlbumFolderGrid from "./AlbumFolderGrid";
+import AlbumView from "./AlbumView";
+import AlbumModalSkeleton from "./AlbumModalSkeleton";
 
 interface GallerySectionProps {
   categories?: CategoryData[];
@@ -42,7 +49,45 @@ export default function GallerySection({
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  // Synchronize category or layout if query parameter updates
+  const [selectedAlbum, setSelectedAlbum] = useState<PublicAlbumDetail | null>(null);
+  const [isLoadingAlbum, setIsLoadingAlbum] = useState<boolean>(false);
+
+  const openAlbumBySlug = useCallback(async (slug: string) => {
+    setIsLoadingAlbum(true);
+    try {
+      const res = await getPublicAlbumBySlugAction(slug);
+      if (res.success && res.album) {
+        setSelectedAlbum(res.album);
+      }
+    } catch (err) {
+      console.error("Failed to load album:", err);
+    } finally {
+      setIsLoadingAlbum(false);
+    }
+  }, []);
+
+  const handleSelectAlbum = useCallback(
+    (album: PublicAlbumData) => {
+      const params = new URLSearchParams(window.location.search);
+      params.set("album", album.slug);
+      const newQuery = params.toString();
+      window.history.pushState(null, "", `/gallery?${newQuery}`);
+      openAlbumBySlug(album.slug);
+    },
+    [openAlbumBySlug]
+  );
+
+  const handleCloseAlbum = useCallback(() => {
+    setSelectedAlbum(null);
+    setIsLoadingAlbum(false);
+    const params = new URLSearchParams(window.location.search);
+    params.delete("album");
+    const newQuery = params.toString();
+    const newUrl = newQuery ? `/gallery?${newQuery}` : "/gallery";
+    window.history.pushState(null, "", newUrl);
+  }, []);
+
+  // Synchronize category, layout, or album if query parameter updates
   useEffect(() => {
     const pCategory = searchParams.get("category");
     if (pCategory) {
@@ -52,7 +97,27 @@ export default function GallerySection({
     if (pLayout === "drift" || pLayout === "grid" || pLayout === "masonry") {
       setActiveLayout(pLayout);
     }
-  }, [searchParams]);
+    const albumParam = searchParams.get("album");
+    if (albumParam) {
+      openAlbumBySlug(albumParam);
+    }
+  }, [searchParams, openAlbumBySlug]);
+
+  // Support browser Back/Forward navigation for album modals
+  useEffect(() => {
+    const onPopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const albumSlug = params.get("album");
+      if (albumSlug) {
+        openAlbumBySlug(albumSlug);
+      } else {
+        setSelectedAlbum(null);
+        setIsLoadingAlbum(false);
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [openAlbumBySlug]);
 
   // Dynamically build category tabs from backend categories, strictly excluding hero-section
   const categoryTabs = useMemo<GalleryCategoryTab[]>(() => {
@@ -168,8 +233,11 @@ export default function GallerySection({
           onSearchChange={(q) => setSearchQuery(q)}
         />
 
-        {/* 3. Albums - folders opening on their own route */}
-        <AlbumFolderGrid albums={filteredAlbums} />
+        {/* 3. Albums - folders opening full-screen modal directly */}
+        <AlbumFolderGrid
+          albums={filteredAlbums}
+          onSelectAlbum={handleSelectAlbum}
+        />
 
         {/* 4. Clean Responsive Gallery Grid (Zero Muddy Overlays or Dark Shadows) */}
         <GalleryGrid
@@ -179,13 +247,35 @@ export default function GallerySection({
           onImageClick={(index) => setLightboxIndex(index)}
         />
 
-        {/* 5. Interactive Minimalist Lightbox Modal */}
+        {/* 5. Interactive Minimalist Lightbox Modal for individual photos */}
         <GalleryLightbox
           images={filteredImages}
           selectedIndex={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
           onSelectIndex={(index) => setLightboxIndex(index)}
         />
+
+        {/* 6. Full-Screen Album / Group Modal (80% Image Left / 20% Text Right) */}
+        <AnimatePresence>
+          {(selectedAlbum || isLoadingAlbum) && (
+            <motion.div
+              key="album-modal-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+            >
+              {selectedAlbum ? (
+                <AlbumView
+                  album={selectedAlbum}
+                  onClose={handleCloseAlbum}
+                />
+              ) : (
+                <AlbumModalSkeleton onClose={handleCloseAlbum} />
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </section>
   );
