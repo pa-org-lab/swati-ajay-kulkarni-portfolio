@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { FiGrid } from "react-icons/fi";
+import { FiGrid, FiMail } from "react-icons/fi";
 
 interface NavItem {
   label: string;
@@ -21,6 +21,15 @@ const NAV_ITEMS: NavItem[] = [
       />
     ),
   },
+  {
+    label: "Messages",
+    href: "/admin/messages",
+    icon: ({ active }) => (
+      <FiMail
+        className={`text-base shrink-0 ${active ? "text-[#a8522e]" : "text-[#a89488]"}`}
+      />
+    ),
+  },
 ];
 
 interface AdminNavProps {
@@ -29,7 +38,7 @@ interface AdminNavProps {
 }
 
 export default function AdminNav({
-  sectionTitle = "Collections",
+  sectionTitle = "Manage",
   items = NAV_ITEMS,
 }: AdminNavProps) {
   const pathname = usePathname();
@@ -44,7 +53,10 @@ export default function AdminNav({
         {items.map((item) => {
           const isActive =
             pathname === item.href ||
-            (item.href === "/admin" && pathname?.startsWith("/admin/gallery"));
+            (item.href === "/admin" &&
+              (pathname === "/admin" ||
+                pathname?.startsWith("/admin/gallery"))) ||
+            (item.href !== "/admin" && pathname?.startsWith(item.href));
 
           return (
             <Link
