@@ -109,12 +109,12 @@ export default function AnnouncementsSection({
     >
       <div className="max-w-[1440px] mx-auto space-y-12">
         {/* 1. Page Header */}
-        <div className="max-w-3xl space-y-4">
-          <motion.div {...fadeUp} className="flex items-center gap-2">
+        <div className=" space-y-4">
+          {/* <motion.div {...fadeUp} className="flex items-center gap-2">
             <span className="text-[11px] font-sans font-semibold tracking-[0.28em] uppercase text-[#c2654d]">
               Announcements & Gatherings
             </span>
-          </motion.div>
+          </motion.div> */}
 
           <motion.h1
             {...fadeUp}
@@ -124,7 +124,7 @@ export default function AnnouncementsSection({
             Classes, Exhibitions & Gatherings
           </motion.h1>
 
-          <div className="w-14 h-[3px] rounded-full bg-[#c2654d]" />
+          {/* <div className="w-14 h-[3px] rounded-full bg-[#c2654d]" /> */}
 
           <motion.p
             {...fadeUp}

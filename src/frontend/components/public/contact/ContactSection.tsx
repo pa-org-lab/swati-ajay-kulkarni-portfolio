@@ -31,7 +31,7 @@ export default function ContactSection() {
                 Get in touch
               </motion.h1>
 
-              <div className="w-14 h-[3px] rounded-full bg-[#c2654d] mt-5" />
+              {/* <div className="w-14 h-[3px] rounded-full bg-[#c2654d] mt-5" /> */}
 
               <motion.p
                 {...fadeUp}
