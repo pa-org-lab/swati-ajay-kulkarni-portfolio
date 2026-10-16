@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { FiGrid, FiMail } from "react-icons/fi";
+import { FiBell, FiGrid, FiMail } from "react-icons/fi";
 
 interface NavItem {
   label: string;
@@ -17,6 +17,15 @@ const NAV_ITEMS: NavItem[] = [
     href: "/admin",
     icon: ({ active }) => (
       <FiGrid
+        className={`text-base shrink-0 ${active ? "text-[#a8522e]" : "text-[#a89488]"}`}
+      />
+    ),
+  },
+  {
+    label: "Announcements",
+    href: "/admin/announcements",
+    icon: ({ active }) => (
+      <FiBell
         className={`text-base shrink-0 ${active ? "text-[#a8522e]" : "text-[#a89488]"}`}
       />
     ),

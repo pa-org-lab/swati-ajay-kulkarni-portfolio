@@ -10,7 +10,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-export default function Navbar() {
+interface NavbarProps {
+  announcementsEnabled?: boolean;
+}
+
+export default function Navbar({ announcementsEnabled = true }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { scrollY } = useScroll();
@@ -23,6 +27,9 @@ export default function Navbar() {
   const navLinks = [
     { name: "HOME", href: "/" },
     { name: "GALLERY", href: "/gallery" },
+    ...(announcementsEnabled
+      ? [{ name: "ANNOUNCEMENTS", href: "/announcements" }]
+      : []),
     // { name: "ABOUT", href: "/about" },
     { name: "CONTACT", href: "/contact" },
   ];

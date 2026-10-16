@@ -1,12 +1,15 @@
 import { Toaster } from "react-hot-toast";
+import { getAnnouncementsEnabledAction } from "@/backend/actions/announcement.action";
 import Footer from "@/frontend/components/public/common/Footer";
 import Navbar from "@/frontend/components/public/common/Navbar";
 
-export default function PublicLayout({
+export default async function PublicLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const announcementsEnabled = await getAnnouncementsEnabledAction();
+
   return (
     <>
       <Toaster
@@ -29,7 +32,7 @@ export default function PublicLayout({
           },
         }}
       />
-      <Navbar />
+      <Navbar announcementsEnabled={announcementsEnabled} />
       {children}
       <Footer />
     </>
