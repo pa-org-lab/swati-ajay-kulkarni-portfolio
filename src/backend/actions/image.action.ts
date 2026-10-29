@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import dbConnect from "@/backend/config/dbConnect";
 import { getPublicImageUrl } from "@/backend/lib/publicImageUrl";
 import { Image, type Images } from "@/backend/models/images.model";
@@ -131,6 +132,9 @@ export async function saveUploadedImagesAction(
 
     const inserted = await Image.insertMany(docs);
 
+    revalidatePath("/");
+    revalidatePath("/gallery");
+
     return {
       success: true,
       images: inserted.map(formatImage),
@@ -165,6 +169,9 @@ export async function updateImageAction(
 
     if (!updated) return { success: false, error: "Image not found" };
 
+    revalidatePath("/");
+    revalidatePath("/gallery");
+
     return {
       success: true,
       image: formatImage(updated),
@@ -198,6 +205,9 @@ export async function reorderImagesAction(
       }))
     );
 
+    revalidatePath("/");
+    revalidatePath("/gallery");
+
     return { success: true };
   } catch (error) {
     console.error("Error reordering images:", error);
@@ -215,6 +225,9 @@ export async function deleteImageAction(imageId: string) {
 
     await dbConnect();
     await Image.findByIdAndDelete(imageId);
+
+    revalidatePath("/");
+    revalidatePath("/gallery");
 
     return { success: true };
   } catch (error) {

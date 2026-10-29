@@ -3,6 +3,8 @@ import { getAnnouncementsEnabledAction } from "@/backend/actions/announcement.ac
 import Footer from "@/frontend/components/public/common/Footer";
 import Navbar from "@/frontend/components/public/common/Navbar";
 
+export const dynamic = "force-dynamic";
+
 export default async function PublicLayout({
   children,
 }: {

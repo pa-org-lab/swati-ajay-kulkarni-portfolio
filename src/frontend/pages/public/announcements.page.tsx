@@ -6,8 +6,6 @@ import {
 } from "@/backend/actions/announcement.action";
 import AnnouncementsSection from "@/frontend/components/public/announcements/AnnouncementsSection";
 
-export const dynamic = "force-dynamic";
-
 export default async function AnnouncementsPage() {
   const isEnabled = await getAnnouncementsEnabledAction();
   if (!isEnabled) {

@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import dbConnect from "@/backend/config/dbConnect";
 import { ImageCategory } from "@/backend/models/imageCategory.model";
 import { Image } from "@/backend/models/images.model";
@@ -166,6 +167,9 @@ export async function createCategoryAction(name: string, description?: string) {
       description: trimmedDescription,
     });
 
+    revalidatePath("/");
+    revalidatePath("/gallery");
+
     return {
       success: true,
       category: {
@@ -225,6 +229,9 @@ export async function updateCategoryAction(id: string, name: string, description
       Image.findOne({ categoryId: id }).sort({ position: 1 }).select("url").lean(),
     ]);
 
+    revalidatePath("/");
+    revalidatePath("/gallery");
+
     return {
       success: true,
       category: {
@@ -259,6 +266,9 @@ export async function deleteCategoryAction(id: string) {
       Image.deleteMany({ categoryId: id }),
     ]);
 
+    revalidatePath("/");
+    revalidatePath("/gallery");
+
     return { success: true };
   } catch (error) {
     console.error("Error deleting category:", error);
@@ -283,6 +293,9 @@ export async function reorderCategoriesAction(orderedIds: string[]) {
         },
       }))
     );
+
+    revalidatePath("/");
+    revalidatePath("/gallery");
 
     return { success: true };
   } catch (error) {

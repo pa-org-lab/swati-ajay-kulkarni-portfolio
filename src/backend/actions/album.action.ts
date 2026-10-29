@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import mongoose from "mongoose";
 import slugify from "slugify";
 import dbConnect from "@/backend/config/dbConnect";
@@ -126,6 +127,8 @@ export async function createAlbumAction(
       description: description?.trim() || "",
     });
 
+    revalidatePath("/gallery");
+
     return {
       success: true,
       album: {
@@ -196,6 +199,8 @@ export async function updateAlbumAction(
       Image.findOne({ albumId: id }).sort({ position: 1 }).select("url").lean(),
     ]);
 
+    revalidatePath("/gallery");
+
     return {
       success: true,
       album: {
@@ -229,6 +234,8 @@ export async function deleteAlbumAction(id: string) {
       Image.deleteMany({ albumId: id }),
     ]);
 
+    revalidatePath("/gallery");
+
     return { success: true };
   } catch (error) {
     console.error("Error deleting album:", error);
@@ -255,6 +262,8 @@ export async function reorderAlbumsAction(
         },
       })),
     );
+
+    revalidatePath("/gallery");
 
     return { success: true };
   } catch (error) {
